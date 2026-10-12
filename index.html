@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>게스트북 · 관리</title>
+<link rel="stylesheet" href="css/base.css?v=1791806258">
+<link rel="stylesheet" href="css/admin.css?v=1791806258">
+</head>
+<body>
+<main>
+  <header class="top">
+    <div>
+      <p class="kicker"><span data-bind="title">CAR ESPERANTO</span> · 전시 게스트북 키오스크</p>
+      <h1>게스트북</h1>
+      <p class="lede">카메라가 얼굴을 찾아 <b data-bind="grid">24 × 32</b> 점으로 바꾸고, 영수증으로 뽑아 주고, 게스트북 벽에 쌓아요. 사진 원본은 어디에도 저장하지 않아요.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><span id="stStore" style="font-size:18px;font-weight:650;padding-top:8px">…</span><small>저장 위치</small></div>
+      <div class="stat"><span class="mono" id="stCount">0</span><small>저장된 얼굴</small></div>
+      <div class="stat"><span class="mono" id="stNext">#0001</span><small>다음 번호</small></div>
+    </div>
+  </header>
+
+  <div class="warn" id="fileWarn" hidden>
+    지금 파일을 직접 열었어요. 카메라와 얼굴 인식은 <b>start.command</b>(맥) 또는 <b>start.bat</b>(윈도우)로 열어야 제대로 돌아가요.
+  </div>
+
+  <!-- 1. 화면 열기 -->
+  <section>
+    <div class="sec-head"><h2>화면 열기</h2><p>세로 모니터 한 대면 첫 번째, 화면이 두 개면 위·아래를 따로 열어요. 창을 한 번 누르면 전체 화면이 돼요.</p></div>
+    <div class="launch">
+      <a class="card" href="kiosk.html?screen=both" target="_blank" data-win="both">
+        <div class="diagram d-both"><i class="t"></i><i class="b"></i></div>
+        <b>키오스크</b><span>위 + 아래 한 화면</span>
+      </a>
+      <a class="card" href="kiosk.html?screen=top" target="_blank" data-win="top">
+        <div class="diagram d-top"><i class="t"></i></div>
+        <b>위 화면</b><span>카메라 · 촬영 · 인쇄</span>
+      </a>
+      <a class="card" href="kiosk.html?screen=bottom" target="_blank" data-win="bottom">
+        <div class="diagram d-bottom"><i class="b"></i></div>
+        <b>아래 화면</b><span>안내 · 카운트다운</span>
+      </a>
+      <a class="card" href="wall.html" target="_blank" data-win="wall">
+        <div class="diagram d-wall"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <b>게스트북 벽</b><span>쌓이는 얼굴</span>
+      </a>
+    </div>
+    <p class="hint">설치할 때는 <a href="kiosk.html?screen=both&amp;debug" target="_blank">카메라 확인 모드</a>로 얼굴이 잘 잡히는지 먼저 보세요. 키오스크·벽에서 <kbd>Esc</kbd> 두 번이면 이 화면으로 돌아와요.</p>
+  </section>
+
+  <!-- 2. 미리보기 -->
+  <section>
+    <div class="sec-head"><h2>미리보기</h2><p>가장 최근 얼굴로 보여 줘요. 아직 없으면 예시 얼굴이에요.</p></div>
+    <div class="preview">
+      <figure class="pv-screen">
+        <canvas id="pvScreen"></canvas>
+        <figcaption>위 화면</figcaption>
+      </figure>
+      <figure class="pv-receipt">
+        <div class="paper"><canvas id="pvReceipt"></canvas></div>
+        <figcaption><span id="pvPaper">80mm 영수증</span></figcaption>
+      </figure>
+      <div class="pv-actions">
+        <button class="btn primary" id="btnTestPrint">테스트 인쇄</button>
+        <button class="btn" id="btnSaveReceipt">영수증 PNG 저장</button>
+        <p class="small">인쇄 대화상자 없이 바로 나가려면 크롬을 <code>--kiosk-printing</code>으로 켜야 해요. start.command가 알아서 켜 줘요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 설정 -->
+  <section>
+    <div class="sec-head"><h2>설정</h2><p>바꾸면 바로 저장되고, 열려 있는 키오스크·벽 화면에도 곧바로 반영돼요.</p></div>
+    <form id="settings" class="settings" autocomplete="off">
+      <fieldset>
+        <legend>전시 문구</legend>
+        <label>전시 이름<input name="title" type="text"></label>
+        <label class="wide">영수증 윗줄 (줄마다 Enter)<textarea name="subtitle" rows="2"></textarea></label>
+        <label>게스트북 이름<input name="label" type="text"></label>
+        <label class="wide">인사 (한국어 · 화면에만)<input name="thanks" type="text"></label>
+        <label class="wide">인사 (영어 · 영수증과 화면, 보행자 글꼴로 찍혀요)<input name="thanksEn" type="text"></label>
+        <label class="wide">영수증 얼굴 배경
+          <div class="seg" data-name="receiptBg">
+            <button type="button" data-v="stripes">줄무늬</button><button type="button" data-v="dots">도트</button><button type="button" data-v="white">흰 배경</button>
+          </div>
+        </label>
+        <label class="check"><input name="askName" type="checkbox">찍은 뒤 이름 받기</label>
+        <label>이름 최대 글자 수<input name="nameMax" type="number" min="4" max="16" step="1"></label>
+        <label class="wide">이름 점 모양 (보행자 언어)
+          <div class="seg" data-name="nameShape">
+            <button type="button" data-v="oko">OKO 픽셀</button><button type="button" data-v="circle">원</button><button type="button" data-v="rhomb">마름모</button>
+          </div>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>픽셀</legend>
+        <label>색
+          <div class="seg" data-name="theme">
+            <button type="button" data-v="mono"><i style="--a:#0b0b0b;--b:#f2f1ec"></i>흑백</button>
+            <button type="button" data-v="blue"><i style="--a:#1d1b3b;--b:#cddfff"></i>블루</button>
+            <button type="button" data-v="paper"><i style="--a:#ece9e2;--b:#161616"></i>종이</button>
+          </div>
+        </label>
+        <label>점 모양
+          <div class="seg" data-name="shape">
+            <button type="button" data-v="square">네모</button>
+            <button type="button" data-v="dot">동그라미</button>
+          </div>
+        </label>
+        <label>격자 (가로 × 세로)
+          <div class="pair"><input name="cols" type="number" min="12" max="64" step="1"><span>×</span><input name="rows" type="number" min="16" max="86" step="1"></div>
+        </label>
+        <label>검은 점 비율 <output data-for="darkPct"></output><input name="darkPct" type="range" min="0.15" max="0.6" step="0.01"></label>
+        <label>이목구비 강조 <output data-for="detail"></output><input name="detail" type="range" min="0" max="2" step="0.1"></label>
+        <label>배경 정리 세기 <output data-for="bgDarken"></output><input name="bgDarken" type="range" min="0" max="1" step="0.05"></label>
+        <label>얼굴 크기 <output data-for="zoom"></output><input name="zoom" type="range" min="0.6" max="1.8" step="0.05"></label>
+        <label class="check"><input name="screenGrid" type="checkbox">위 화면 픽셀 사이 가는 선 (영수증과 무관)</label>
+        <label class="check"><input name="segment" type="checkbox">사람만 남기고 배경 정리</label>
+        <label>배경 칸
+          <div class="seg" data-name="bgMode">
+            <button type="button" data-v="white">흰 칸</button><button type="button" data-v="black">검은 칸</button>
+          </div>
+        </label>
+        <label class="check"><input name="cleanup" type="checkbox">외톨이 점 정리</label>
+        <label class="check"><input name="invert" type="checkbox">밝고 어두움 뒤집기</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>카메라 · 촬영</legend>
+        <label class="wide">카메라
+          <div class="pair"><select name="cameraId"><option value="">기본 카메라</option></select><button type="button" class="btn small-btn" id="btnCams">목록 불러오기</button></div>
+        </label>
+        <label>카메라 회전
+          <div class="seg" data-name="rotate">
+            <button type="button" data-v="0">0°</button><button type="button" data-v="90">90°</button><button type="button" data-v="180">180°</button><button type="button" data-v="270">270°</button>
+          </div>
+        </label>
+        <label>카운트다운 (초)<input name="countdown" type="number" min="0" max="10" step="1"></label>
+        <label>결과 보여 주는 시간 (초)<input name="holdSeconds" type="number" min="3" max="30" step="1"></label>
+        <label>아무도 없으면 지난 얼굴 보여 주기 (초)<input name="attractAfter" type="number" min="3" max="120" step="1"></label>
+        <label class="check"><input name="mirror" type="checkbox">거울처럼 좌우 반전</label>
+        <label class="check"><input name="faceDetect" type="checkbox">얼굴 인식으로 자동 맞춤</label>
+        <label class="check"><input name="requireFace" type="checkbox">얼굴이 보일 때만 촬영</label>
+        <label class="check"><input name="screenButton" type="checkbox">화면에 촬영 버튼</label>
+        <label class="check"><input name="tapToShoot" type="checkbox">화면 아무 곳이나 눌러도 촬영</label>
+        <label class="check"><input name="sound" type="checkbox">카운트다운 소리</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>프린터</legend>
+        <label class="check"><input name="print" type="checkbox">촬영하면 영수증 인쇄</label>
+        <label>용지 폭
+          <div class="seg" data-name="paper">
+            <button type="button" data-v="80">80mm</button><button type="button" data-v="58">58mm</button>
+          </div>
+        </label>
+        <label>프린터 위치 (화살표 방향)
+          <div class="seg" data-name="printerSide">
+            <button type="button" data-v="right">오른쪽 →</button><button type="button" data-v="left">← 왼쪽</button>
+          </div>
+        </label>
+        <label>장수<input name="copies" type="number" min="1" max="5" step="1"></label>
+        <label>번호 시작<input name="numberStart" type="number" min="1" step="1"></label>
+        <label class="check"><input name="receiptGrid" type="checkbox">영수증에도 격자선</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>게스트북 벽</legend>
+        <label>처음 비워 둘 칸 수<input name="wallMinSlots" type="number" min="1" max="400" step="1"></label>
+        <label class="check"><input name="wallHeader" type="checkbox">위쪽에 제목·인원 표시</label>
+        <label class="check"><input name="wallTwinkle" type="checkbox">가끔 한 얼굴이 다시 맺히기</label>
+      </fieldset>
+      <div class="form-foot"><span class="saved" id="saved">저장됨</span><button type="button" class="btn ghost" id="btnReset">기본값으로</button></div>
+    </form>
+  </section>
+
+  <!-- 4. 보관함 -->
+  <section>
+    <div class="sec-head"><h2>보관함</h2><p id="storeNote">이 컴퓨터의 크롬 안에 저장돼요. 전시 중에는 하루에 한 번 백업 파일을 받아 두세요.</p></div>
+    <div class="archive-bar">
+      <button class="btn" id="btnExport">백업 파일 받기 (.json)</button>
+      <label class="btn">백업 불러오기<input type="file" id="fileImport" accept="application/json,.json" hidden></label>
+      <button class="btn" id="btnPoster">벽 포스터 PNG</button>
+      <span class="grow"></span>
+      <span class="pick-info" id="pickInfo">지울 얼굴의 네모 칸을 눌러 고르세요</span>
+      <button class="btn ghost" id="btnPickNone" hidden>선택 해제</button>
+      <button class="btn danger" id="btnDelPicked" disabled>선택한 얼굴 지우기</button>
+    </div>
+    <div class="archive" id="archive"><p class="empty">아직 저장된 얼굴이 없어요.</p></div>
+    <div class="selected" id="selected" hidden>
+      <canvas id="selCanvas"></canvas>
+      <div>
+        <p class="mono sel-no" id="selNo">#0000</p>
+        <p class="small" id="selMeta"></p>
+        <div class="row">
+          <button class="btn" id="btnReprint">영수증 다시 인쇄</button>
+          <button class="btn" id="btnSaveSel">영수증 PNG 저장</button>
+          <button class="btn danger" id="btnDelete">이 얼굴 지우기</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>얼굴 인식: face-api (TinyFaceDetector, 오프라인) · 글꼴: Pretendard, JetBrains Mono · config.js 에 웹 저장소를 넣으면 여러 기기가 같은 기록을 써요.</footer>
+</main>
+<script src="config.js"></script>
+<script src="js/common.js?v=1791806258"></script>
+<script src="js/dotname.js?v=1791806258"></script>
+<script src="js/admin.js?v=1791806258"></script>
+</body>
+</html>

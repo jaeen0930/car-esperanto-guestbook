@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>게스트북 · 키오스크</title>
+<link rel="stylesheet" href="css/base.css?v=1791806258">
+<link rel="stylesheet" href="css/kiosk.css?v=1791806258">
+</head>
+<body data-screen="both" data-state="boot">
+<div id="app">
+  <section id="top" aria-label="위 화면">
+    <canvas id="pix"></canvas>
+    <div id="flash"></div>
+    <canvas id="debug" hidden></canvas>
+  </section>
+
+  <section id="bottom" aria-label="아래 화면">
+    <!-- 대기 · 준비 · 소개 -->
+    <div class="view" id="v-idle">
+      <div class="press">
+        <button type="button" class="shoot-btn" id="shootBtn" aria-label="누르세요"><span class="dome"></span></button>
+        <div class="press-txt">
+          <div class="press-word" id="pressBox"><canvas id="pressWord"></canvas></div>
+          <b>버튼을 누르세요</b>
+        </div>
+      </div>
+      <p class="idle-hint"><span>화면을 보고 얼굴을 가운데에 맞춰 주세요</span><span class="en">Look at the screen and center your face</span></p>
+    </div>
+
+    <!-- 카운트다운 -->
+    <div class="view" id="v-count">
+      <div class="count-num" id="countBox"><canvas id="countNum"></canvas></div>
+      <div class="count-cap"><span id="countKo">가만히 있어요</span><span id="countEn">Hold still</span></div>
+    </div>
+
+    <!-- 촬영 -->
+    <div class="view" id="v-shoot">
+      <div class="shoot-word">찰칵</div>
+    </div>
+
+    <!-- 이름 -->
+    <div class="view" id="v-name">
+      <div class="name-left">
+        <div class="eyebrow"><span>YOUR NAME</span><i></i><span>이름을 적어 주세요</span></div>
+        <div class="name-pv" id="namePvBox"><canvas id="namePv"></canvas></div>
+        <p class="name-hint"><span>영문으로 적어 주세요</span><i></i><span>다 적으면 버튼</span></p>
+      </div>
+      <div class="kbd" id="kbd"></div>
+    </div>
+
+    <!-- 완료 -->
+    <div class="view" id="v-done">
+      <div class="done-left">
+        <div class="done-name" id="doneNameBox"><canvas id="doneName"></canvas></div>
+        <h1 class="done-ko" data-bind="thanks"></h1>
+        <p class="done-en" data-bind="thanksEn"></p>
+      </div>
+      <div class="done-right">
+        <div class="arrow" id="doneArrow" aria-hidden="true">
+          <svg viewBox="0 0 13 9" shape-rendering="crispEdges"><rect x="8" y="0" width="0.9" height="0.9"/><rect x="8" y="1" width="0.9" height="0.9"/><rect x="9" y="1" width="0.9" height="0.9"/><rect x="8" y="2" width="0.9" height="0.9"/><rect x="9" y="2" width="0.9" height="0.9"/><rect x="10" y="2" width="0.9" height="0.9"/><rect x="0" y="3" width="0.9" height="0.9"/><rect x="1" y="3" width="0.9" height="0.9"/><rect x="2" y="3" width="0.9" height="0.9"/><rect x="3" y="3" width="0.9" height="0.9"/><rect x="4" y="3" width="0.9" height="0.9"/><rect x="5" y="3" width="0.9" height="0.9"/><rect x="6" y="3" width="0.9" height="0.9"/><rect x="7" y="3" width="0.9" height="0.9"/><rect x="8" y="3" width="0.9" height="0.9"/><rect x="9" y="3" width="0.9" height="0.9"/><rect x="10" y="3" width="0.9" height="0.9"/><rect x="11" y="3" width="0.9" height="0.9"/><rect x="0" y="4" width="0.9" height="0.9"/><rect x="1" y="4" width="0.9" height="0.9"/><rect x="2" y="4" width="0.9" height="0.9"/><rect x="3" y="4" width="0.9" height="0.9"/><rect x="4" y="4" width="0.9" height="0.9"/><rect x="5" y="4" width="0.9" height="0.9"/><rect x="6" y="4" width="0.9" height="0.9"/><rect x="7" y="4" width="0.9" height="0.9"/><rect x="8" y="4" width="0.9" height="0.9"/><rect x="9" y="4" width="0.9" height="0.9"/><rect x="10" y="4" width="0.9" height="0.9"/><rect x="11" y="4" width="0.9" height="0.9"/><rect x="12" y="4" width="0.9" height="0.9"/><rect x="0" y="5" width="0.9" height="0.9"/><rect x="1" y="5" width="0.9" height="0.9"/><rect x="2" y="5" width="0.9" height="0.9"/><rect x="3" y="5" width="0.9" height="0.9"/><rect x="4" y="5" width="0.9" height="0.9"/><rect x="5" y="5" width="0.9" height="0.9"/><rect x="6" y="5" width="0.9" height="0.9"/><rect x="7" y="5" width="0.9" height="0.9"/><rect x="8" y="5" width="0.9" height="0.9"/><rect x="9" y="5" width="0.9" height="0.9"/><rect x="10" y="5" width="0.9" height="0.9"/><rect x="11" y="5" width="0.9" height="0.9"/><rect x="8" y="6" width="0.9" height="0.9"/><rect x="9" y="6" width="0.9" height="0.9"/><rect x="10" y="6" width="0.9" height="0.9"/><rect x="8" y="7" width="0.9" height="0.9"/><rect x="9" y="7" width="0.9" height="0.9"/><rect x="8" y="8" width="0.9" height="0.9"/></svg>
+        </div>
+      </div>
+      <div class="done-no" id="doneNoBox"><canvas id="doneNo"></canvas></div>
+    </div>
+
+    <!-- 오류 -->
+    <div class="view" id="v-error">
+      <div class="intro">
+        <div class="eyebrow"><span data-bind="title"></span><i></i><span data-bind="label"></span></div>
+        <h1 class="hello">잠시 준비 중이에요</h1>
+        <p class="hello-en">Getting ready. Please wait a moment.</p>
+        <p class="err mono" id="errMsg"></p>
+      </div>
+    </div>
+
+    <div id="toast" role="status"></div>
+  </section>
+</div>
+<video id="cam" playsinline muted></video>
+
+<script src="vendor/face-api.js"></script>
+<script src="vendor/selfie/selfie_segmentation.js"></script>
+<script src="config.js"></script>
+<script src="js/common.js?v=1791806258"></script>
+<script src="js/dotname.js?v=1791806258"></script>
+<script src="js/kiosk.js?v=1791806258"></script>
+</body>
+</html>

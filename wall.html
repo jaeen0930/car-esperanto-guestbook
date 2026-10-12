@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>게스트북 · 벽</title>
+<link rel="stylesheet" href="css/base.css?v=1791806258">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--wall, #141414); color: var(--text, #f2f1ec); font-family: var(--sans); -webkit-font-smoothing: antialiased; user-select: none; }
+  #wall { position: fixed; inset: 0; display: block; }
+  header { position: fixed; left: 0; right: 0; top: 0; display: flex; align-items: baseline; justify-content: space-between; padding: 2.6vmin 3vmin 0; pointer-events: none; }
+  header[hidden] { display: none; }
+  .t { display: flex; align-items: baseline; gap: 1.4vmin; font-size: 1.9vmin; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+  .t i { width: .55vmin; height: .55vmin; border-radius: 50%; background: var(--dim); display: inline-block; transform: translateY(-.3vmin); }
+  .t span:last-child { color: var(--dim); }
+  .c { display: flex; align-items: baseline; gap: 1vmin; font-size: 1.9vmin; color: var(--dim); }
+  .c b { font-family: var(--mono); font-weight: 500; font-size: 3.4vmin; color: var(--text); letter-spacing: -.02em; }
+  @media (orientation: portrait) { .t, .c { font-size: 1.6vmax; } .c b { font-size: 2.6vmax; } }
+  #wall { cursor: default; }
+  #wall.hand { cursor: pointer; }
+  #card { position: fixed; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--wall, #141414) 82%, transparent); backdrop-filter: blur(6px); opacity: 0; transition: opacity 240ms ease; z-index: 10; }
+  #card.on { opacity: 1; }
+  #card[hidden] { display: none; }
+  .card-inner { display: flex; flex-direction: column; align-items: center; gap: 2.4vmin; transform: translateY(14px) scale(.97); transition: transform 320ms cubic-bezier(.2,.8,.2,1); }
+  #card.on .card-inner { transform: none; }
+  #cardImg { display: block; width: min(78vw, calc(70vh * 1.78)); height: auto; background: #fff; image-rendering: pixelated; box-shadow: 0 2px 0 rgba(0,0,0,.25), 0 30px 80px -20px rgba(0,0,0,.6); border-radius: 3px; }
+  .card-nav { display: flex; align-items: center; gap: 2vmin; color: var(--dim); font: 500 1.8vmin var(--mono); }
+  .card-nav button { appearance: none; border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); background: transparent; color: var(--text); width: 5.2vmin; height: 5.2vmin; border-radius: 50%; font: 500 2.4vmin var(--mono); cursor: pointer; }
+  .card-nav button:hover { background: color-mix(in srgb, var(--text) 12%, transparent); }
+  .card-nav .x { width: auto; border-radius: 999px; padding: 0 2.2vmin; font: 600 1.7vmin var(--sans); }
+  .card-nav .print { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .card-nav .print:hover { background: color-mix(in srgb, var(--accent) 85%, #000); }
+  .card-nav .print:disabled { opacity: .5; cursor: default; }
+  .card-nav .del { color: #ff8a78; border-color: rgba(255,138,120,.45); }
+  .card-nav .del.arm { background: #e2412b; border-color: #e2412b; color: #fff; }
+</style>
+</head>
+<body>
+<canvas id="wall"></canvas>
+<header id="hdr">
+  <div class="t"><span id="hTitle"></span><i></i><span id="hLabel"></span></div>
+  <div class="c"><b id="hCount">0000</b><span>명이 다녀갔어요</span></div>
+</header>
+<div id="card" hidden>
+  <div class="card-inner">
+    <img id="cardImg" alt="">
+    <div class="card-nav">
+      <button type="button" id="cardPrev" aria-label="이전">‹</button>
+      <span id="cardNo">0000</span>
+      <button type="button" id="cardNext" aria-label="다음">›</button>
+      <button type="button" class="x print" id="cardPrint">다시 출력</button>
+      <button type="button" class="x" id="cardSave">저장</button>
+      <button type="button" class="x del" id="cardDel">삭제</button>
+      <button type="button" class="x" id="cardClose">닫기</button>
+    </div>
+  </div>
+</div>
+<script src="config.js"></script>
+<script src="js/common.js?v=1791806258"></script>
+<script src="js/dotname.js?v=1791806258"></script>
+<script src="js/wall.js?v=1791806258"></script>
+</body>
+</html>
