@@ -104,8 +104,21 @@
     const t = FG.themeOf(S);
     const cell = Math.max(1, Math.floor(Math.min(cv.height / 7, cv.width / Math.max(1, FG.dotCols(text)))));
     const w = FG.dotCols(text) * cell;
-    const x = align === 'center' ? Math.round((cv.width - w) / 2) : align === 'right' ? cv.width - w : 0;
-    FG.drawDotText(g, text, x, Math.round((cv.height - 7 * cell) / 2), { cell, color: t.text, shape: S.nameShape, ghost: !noGhost && cell >= 6 ? 'color-mix(in srgb, ' + t.text + ' 10%, transparent)' : null });
+    const opt = { cell, color: t.text, shape: S.nameShape, ghost: !noGhost && cell >= 6 ? 'color-mix(in srgb, ' + t.text + ' 10%, transparent)' : null };
+    if (align === 'center') {
+      // 가운데 정렬은 글자 간격 칸이 아니라 실제로 찍힌 점을 기준으로 맞춤 (숫자 1처럼 한쪽으로 치우친 글자도 정중앙)
+      const tmp = document.createElement('canvas'); tmp.width = w + cell; tmp.height = 7 * cell;
+      FG.drawDotText(tmp.getContext('2d'), text, 0, 0, Object.assign({}, opt, { ghost: null }));
+      const d = tmp.getContext('2d').getImageData(0, 0, tmp.width, tmp.height).data;
+      let x0 = tmp.width, x1 = -1, y0 = tmp.height, y1 = -1;
+      for (let yy = 0; yy < tmp.height; yy++) for (let xx = 0; xx < tmp.width; xx++) if (d[(yy * tmp.width + xx) * 4 + 3] > 20) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; }
+      if (x1 < 0) return;
+      const ox = Math.round((cv.width - (x1 - x0 + 1)) / 2) - x0, oy = Math.round((cv.height - (y1 - y0 + 1)) / 2) - y0;
+      FG.drawDotText(g, text, ox, oy, opt);
+      return;
+    }
+    const x = align === 'right' ? cv.width - w : 0;
+    FG.drawDotText(g, text, x, Math.round((cv.height - 7 * cell) / 2), opt);
   }
 
   /* ───────── 이름 (카 에스페란토 보행자 언어) ───────── */

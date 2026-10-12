@@ -79,7 +79,7 @@ body[data-state="idle"] .shoot-btn, body[data-state="attract"] .shoot-btn { opac
 
 /* 카운트다운 */
 #v-count { display: grid; place-items: center; padding: 0; }
-.count-num { position: absolute; left: 10%; right: 10%; top: 13%; bottom: 13%; transform-origin: 50% 50%; }
+.count-num { position: absolute; left: 10%; right: 10%; top: 19%; bottom: 19%; transform-origin: 50% 50%; }
 .count-num.tick { animation: tick 1000ms cubic-bezier(.2,.7,.2,1); }
 @keyframes tick { 0% { transform: scale(1.18); opacity: 0; } 14% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 .count-cap { position: absolute; left: 0; right: 0; bottom: calc(var(--u) * 7); display: flex; justify-content: center; gap: calc(var(--u) * 3); font-size: calc(var(--u) * 4.6); color: var(--dim); }
