@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>게스트북 · 관리</title>
-<link rel="stylesheet" href="css/base.css?v=1791808616">
-<link rel="stylesheet" href="css/admin.css?v=1791808616">
+<link rel="stylesheet" href="css/base.css?v=1791872208">
+<link rel="stylesheet" href="css/admin.css?v=1791872208">
 </head>
 <body>
 <main>
@@ -152,6 +152,12 @@
       <fieldset>
         <legend>프린터</legend>
         <label class="check"><input name="print" type="checkbox">촬영하면 영수증 인쇄</label>
+        <label class="wide">인쇄 방식
+          <div class="seg" data-name="printMode">
+            <button type="button" data-v="browser">브라우저 인쇄 (컴퓨터)</button><button type="button" data-v="epos">엡손 프린터로 바로 (아이패드)</button>
+          </div>
+        </label>
+        <label class="wide">엡손 프린터 주소 (IP)<input name="eposHost" type="text" placeholder="예: 192.168.0.50" autocomplete="off" spellcheck="false"></label>
         <label>용지 폭
           <div class="seg" data-name="paper">
             <button type="button" data-v="80">80mm</button><button type="button" data-v="58">58mm</button>
@@ -159,7 +165,7 @@
         </label>
         <label>프린터 위치 (화살표 방향)
           <div class="seg" data-name="printerSide">
-            <button type="button" data-v="right">오른쪽 →</button><button type="button" data-v="left">← 왼쪽</button>
+            <button type="button" data-v="right">오른쪽 →</button><button type="button" data-v="left">← 왼쪽</button><button type="button" data-v="down">↓ 아래 (아이패드)</button>
           </div>
         </label>
         <label>장수<input name="copies" type="number" min="1" max="5" step="1"></label>
@@ -207,8 +213,8 @@
   <footer>얼굴 인식: face-api (TinyFaceDetector, 오프라인) · 글꼴: Pretendard, JetBrains Mono · config.js 에 웹 저장소를 넣으면 여러 기기가 같은 기록을 써요.</footer>
 </main>
 <script src="config.js"></script>
-<script src="js/common.js?v=1791808616"></script>
-<script src="js/dotname.js?v=1791808616"></script>
-<script src="js/admin.js?v=1791808616"></script>
+<script src="js/common.js?v=1791872208"></script>
+<script src="js/dotname.js?v=1791872208"></script>
+<script src="js/admin.js?v=1791872208"></script>
 </body>
 </html>

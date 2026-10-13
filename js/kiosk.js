@@ -30,6 +30,7 @@
     FG.applyThemeVars(S);
     document.body.classList.toggle('no-screen-btn', !S.screenButton);
     document.body.classList.toggle('printer-left', S.printerSide === 'left');
+    document.body.classList.toggle('printer-down', S.printerSide === 'down');
     bindTexts();
     sizeCanvas();
     const camKey = S.cameraId + '|' + S.rotate;
@@ -596,7 +597,7 @@
         await FG.fontsReady;
         const cv = FG.renderReceipt(entry, S);
         await FG.sleep(120);
-        FG.printCanvas(cv, S);
+        Promise.resolve(FG.printCanvas(cv, S)).catch((err) => { console.warn(err); toast('프린터에 닿지 않았어요. 게스트북에는 저장됐어요'); });
       }
       await FG.sleep(Math.max(3, Number(S.holdSeconds) || 8) * 1000);
     } catch (e) {

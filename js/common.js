@@ -17,6 +17,8 @@
     thanksEn: 'Thank you for taking the time to visit us.',
     receiptBg: 'stripes',   // 영수증 얼굴 배경: white | stripes | dots
     printerSide: 'right',   // 프린터가 아래 화면의 어느 쪽에 있나 (화살표 방향)
+    printMode: 'browser',   // browser: 브라우저 인쇄 창(크롬 --kiosk-printing 이면 자동) · epos: 엡손 영수증 프린터로 바로(아이패드용)
+    eposHost: '',           // 엡손 프린터 주소 (예: 192.168.0.50)
     cols: 24,
     rows: 32,
     shape: 'square',        // square | dot
@@ -766,7 +768,41 @@
 
   /* 인쇄: 숨긴 iframe에 영수증 이미지를 실제 용지 크기로 놓고 인쇄.
      크롬을 --kiosk-printing 으로 켜면 대화상자 없이 기본 프린터로 바로 나갑니다. */
+  /* 엡손 TM 프린터로 바로 인쇄 (ePOS-Print, 인쇄 창 없음 · 아이패드 사파리에서도 됨)
+     웹페이지 → 프린터 주소로 이미지(1비트)를 보내고, 다 찍히면 자동으로 잘라요 */
+  FG.printEpos = async function (canvas, s) {
+    const host = String(s.eposHost || '').trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!host) throw new Error('프린터 주소가 비어 있어요');
+    const c = FG.forPrinter(canvas);
+    const W = Math.floor(c.width / 8) * 8, H = c.height;
+    const d = c.getContext('2d').getImageData(0, 0, W, H).data;
+    const bytes = new Uint8Array((W / 8) * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      if (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11 < 128) bytes[(y * W + x) >> 3] |= 0x80 >> (x & 7);
+    }
+    let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    const img = btoa(bin);
+    const copies = Math.max(1, Math.min(5, Number(s.copies) || 1));
+    let body = '';
+    for (let i = 0; i < copies; i++) body += `<image width="${W}" height="${H}" color="color_1" mode="mono">${img}</image><cut type="feed"/>`;
+    const xml = '<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body>'
+      + '<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">' + body + '</epos-print></s:Body></s:Envelope>';
+    const proto = location.protocol === 'https:' ? 'https' : 'http';
+    const r = await fetch(`${proto}://${host}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=20000`, {
+      method: 'POST', body: xml,
+      headers: { 'Content-Type': 'text/xml; charset=utf-8', 'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT', SOAPAction: '""' },
+    });
+    const t = await r.text();
+    if (!r.ok || !/success="true"/.test(t)) {
+      const code = (t.match(/code="([^"]*)"/) || [])[1];
+      throw new Error('프린터 응답: ' + (code || r.status));
+    }
+    return true;
+  };
+
   FG.printCanvas = function (canvas, s) {
+    if (s.printMode === 'epos') return FG.printEpos(canvas, s);
     canvas = FG.forPrinter(canvas);
     return new Promise((resolve) => {
       const spec = FG.receiptSpec(s.paper);

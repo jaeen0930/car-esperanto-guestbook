@@ -122,7 +122,8 @@
   }
   $('btnTestPrint').addEventListener('click', async () => {
     await FG.fontsReady;
-    FG.printCanvas(FG.renderReceipt(sampleEntry(), S), S);
+    try { await FG.printCanvas(FG.renderReceipt(sampleEntry(), S), S); if (S.printMode === 'epos') alert('프린터로 보냈어요'); }
+    catch (e) { alert('인쇄하지 못했어요. ' + e.message + '\n\n프린터 주소, 같은 네트워크인지, 아이패드에서 https://' + (S.eposHost || '프린터주소') + ' 를 한 번 열어 인증서를 허용했는지 확인해 주세요.'); }
   });
   $('btnSaveReceipt').addEventListener('click', async () => {
     await FG.fontsReady;
@@ -223,7 +224,7 @@
   $('btnReprint').addEventListener('click', async () => {
     if (!selected) return;
     await FG.fontsReady;
-    FG.printCanvas(FG.renderReceipt(selected, S), S);
+    Promise.resolve(FG.printCanvas(FG.renderReceipt(selected, S), S)).catch((e) => alert("인쇄하지 못했어요. " + e.message));
   });
 
   $('btnExport').addEventListener('click', () => {
