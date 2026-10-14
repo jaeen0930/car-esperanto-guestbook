@@ -25,7 +25,8 @@ body[data-screen="bottom"] #top { display: none; }
   position: absolute; inset: 0;
   padding: calc(var(--u) * 8) calc(var(--u) * 9);
   opacity: 0; visibility: hidden;
-  transition: opacity 260ms ease, visibility 0s linear 260ms;
+  /* 나가는 화면은 바로 사라짐 (3 뒤에 PRESS가 겹쳐 보이던 문제) */
+  transition: none;
 }
 body[data-state="idle"] #v-idle,
 body[data-state="ready"] #v-idle,

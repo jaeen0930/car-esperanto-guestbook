@@ -105,7 +105,7 @@
     const t = FG.themeOf(S);
     const cell = Math.max(1, Math.floor(Math.min(cv.height / 7, cv.width / Math.max(1, FG.dotCols(text)))));
     const w = FG.dotCols(text) * cell;
-    const opt = { cell, color: t.text, shape: S.nameShape, ghost: !noGhost && cell >= 6 ? 'color-mix(in srgb, ' + t.text + ' 10%, transparent)' : null };
+    const opt = { cell, color: t.text, shape: 'pixel', ghost: !noGhost && cell >= 6 ? 'color-mix(in srgb, ' + t.text + ' 10%, transparent)' : null };
     if (align === 'center') {
       // 가운데 정렬은 글자 간격 칸이 아니라 실제로 찍힌 점을 기준으로 맞춤 (숫자 1처럼 한쪽으로 치우친 글자도 정중앙)
       const tmp = document.createElement('canvas'); tmp.width = w + cell; tmp.height = 7 * cell;
@@ -140,7 +140,7 @@
     const max = Math.max(6, Math.min(16, Number(S.nameMax) || 12));
     const cell = Math.max(2, Math.floor(Math.min(cv.width / (Math.max(8, Math.min(max, name.length + 1)) * 6), cv.height / 8)));
     const y = Math.round((cv.height - 7 * cell) / 2);
-    if (name) FG.drawDotText(g, name, 0, y, { cell, color: t.text, shape: S.nameShape });
+    if (name) FG.drawDotText(g, name, 0, y, { cell, color: t.text, shape: 'pixel' });
     // 커서: 다음 글자 자리에 깜빡이는 막대
     if (Math.floor(performance.now() / 500) % 2 === 0) {
       g.fillStyle = t.accent;
@@ -154,7 +154,7 @@
     g.clearRect(0, 0, cv.width, cv.height);
     if (!name) return;
     const cell = Math.max(2, Math.min(Math.floor(cv.height / 7), Math.floor(cv.width / FG.dotCols(name))));
-    FG.drawDotText(g, name, 0, Math.round((cv.height - 7 * cell) / 2), { cell, color: FG.themeOf(S).text, shape: S.nameShape });
+    FG.drawDotText(g, name, 0, Math.round((cv.height - 7 * cell) / 2), { cell, color: FG.themeOf(S).text, shape: 'pixel' });
   }
   // 커서 깜빡임
   setInterval(() => { if (state.state === 'name') drawNamePreview(state.name || ''); }, 120);

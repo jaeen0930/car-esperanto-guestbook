@@ -160,10 +160,10 @@
       const ty = big.y + big.h + Math.round(fs * 0.6);
       const label = s.e.name || ('NO ' + FG.pad(s.e.no));
       const cell = Math.max(2, Math.min(Math.round(fs / 7 * 1.2), Math.floor(big.w / FG.dotCols(label))));
-      FG.drawDotText(ctx, label, big.x, ty, { cell, color: colors.text, shape: S.nameShape });
+      FG.drawDotText(ctx, label, big.x, ty, { cell, color: colors.text, shape: 'pixel' });
       const meta = (s.e.name ? 'NO ' + FG.pad(s.e.no) + '  ' : '') + FG.fmtDate(s.e.ts) + '  ' + FG.fmtTime(s.e.ts);
       const mc = Math.max(2, Math.min(Math.round(cell * 0.45), Math.floor(big.w / FG.dotCols(meta))));
-      FG.drawDotText(ctx, meta, big.x, ty + cell * 7 + Math.round(cell * 2.5), { cell: mc, color: colors.dim, shape: S.nameShape });
+      FG.drawDotText(ctx, meta, big.x, ty + cell * 7 + Math.round(cell * 2.5), { cell: mc, color: colors.dim, shape: 'pixel' });
       ctx.globalAlpha = 1;
       return false;
     }

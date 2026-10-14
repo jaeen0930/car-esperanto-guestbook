@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>게스트북 · 관리</title>
-<link rel="stylesheet" href="css/base.css?v=1791965239">
-<link rel="stylesheet" href="css/admin.css?v=1791965239">
+<link rel="stylesheet" href="css/base.css?v=1791965939">
+<link rel="stylesheet" href="css/admin.css?v=1791965939">
 </head>
 <body>
 <main>
@@ -81,18 +81,8 @@
         <label>게스트북 이름<input name="label" type="text"></label>
         <label class="wide">인사 (한국어 · 화면에만)<input name="thanks" type="text"></label>
         <label class="wide">인사 (영어 · 영수증과 화면, 보행자 글꼴로 찍혀요)<input name="thanksEn" type="text"></label>
-        <label class="wide">영수증 얼굴 배경
-          <div class="seg" data-name="receiptBg">
-            <button type="button" data-v="stripes">줄무늬</button><button type="button" data-v="dots">도트</button><button type="button" data-v="white">흰 배경</button>
-          </div>
-        </label>
         <label class="check"><input name="askName" type="checkbox">찍은 뒤 이름 받기</label>
         <label>이름 최대 글자 수<input name="nameMax" type="number" min="4" max="16" step="1"></label>
-        <label class="wide">이름 점 모양 (보행자 언어)
-          <div class="seg" data-name="nameShape">
-            <button type="button" data-v="oko">OKO 픽셀</button><button type="button" data-v="circle">원</button><button type="button" data-v="rhomb">마름모</button>
-          </div>
-        </label>
       </fieldset>
 
       <fieldset>
@@ -104,7 +94,7 @@
             <button type="button" data-v="paper"><i style="--a:#ece9e2;--b:#161616"></i>종이</button>
           </div>
         </label>
-        <label>점 모양
+        <label>점 모양 (화면 픽셀 · 영수증 얼굴)
           <div class="seg" data-name="shape">
             <button type="button" data-v="square">네모</button>
             <button type="button" data-v="dot">동그라미</button>
@@ -152,11 +142,6 @@
       <fieldset>
         <legend>프린터</legend>
         <label class="check"><input name="print" type="checkbox">촬영하면 영수증 인쇄</label>
-        <label class="wide">영수증 디자인
-          <div class="seg" data-name="receiptStyle">
-            <button type="button" data-v="dots">세로 · 동그라미</button><button type="button" data-v="squares">세로 · 네모</button><button type="button" data-v="classic">가로 (이전)</button>
-          </div>
-        </label>
         <label class="wide">인쇄 방식
           <div class="seg" data-name="printMode">
             <button type="button" data-v="browser">브라우저 인쇄 (컴퓨터)</button><button type="button" data-v="epos">엡손 프린터로 바로 (아이패드)</button>
@@ -218,8 +203,8 @@
   <footer>얼굴 인식: face-api (TinyFaceDetector, 오프라인) · 글꼴: Pretendard, JetBrains Mono · config.js 에 웹 저장소를 넣으면 여러 기기가 같은 기록을 써요.</footer>
 </main>
 <script src="config.js"></script>
-<script src="js/common.js?v=1791965239"></script>
-<script src="js/dotname.js?v=1791965239"></script>
-<script src="js/admin.js?v=1791965239"></script>
+<script src="js/common.js?v=1791965939"></script>
+<script src="js/dotname.js?v=1791965939"></script>
+<script src="js/admin.js?v=1791965939"></script>
 </body>
 </html>

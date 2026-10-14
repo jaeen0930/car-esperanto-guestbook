@@ -46,6 +46,24 @@ Y:["#   #","#   #"," # # ","  #  ","  #  ","  #  ","  #  "], Z:["#####","    #",
     const shape = opt.shape || 'oko';
     const chars = Array.from(String(text));
     const lit = new Path2D(), ghost = new Path2D();
+    if (shape === 'pixel') {
+      // 칸 경계를 정수 픽셀에 맞추고(줄마다 굵기가 들쭉날쭉하지 않게), 작은 글자는 꽉 찬 네모, 큰 글자는 가는 틈
+      const gx = (i) => Math.round(x + i * cs), gy = (j) => Math.round(y + j * cs);
+      const gap = cs >= 8 ? Math.max(1, Math.round(cs * 0.08)) : 0;
+      chars.forEach((ch, n) => {
+        const px = PX5[ch];
+        for (let j = 0; j < GH - 1; j++) for (let i = 0; i < GW; i++) {
+          if (n === chars.length - 1 && i === GW - 1) continue;
+          const on = px && i < 5 && px[j][i] === '#';
+          if (!on && !opt.ghost) continue;
+          const c = n * GW + i, X0 = gx(c), Y0 = gy(j), X1 = gx(c + 1), Y1 = gy(j + 1);
+          (on ? lit : ghost).rect(X0, Y0, Math.max(1, X1 - X0 - gap), Math.max(1, Y1 - Y0 - gap));
+        }
+      });
+      if (opt.ghost) { ctx.fillStyle = opt.ghost; ctx.fill(ghost); }
+      ctx.fillStyle = opt.color; ctx.fill(lit);
+      return;
+    }
     const add = (p, cx, cy, k) => {
       if (shape === 'circle') { const r = cs * 0.46 * k; p.moveTo(cx + r, cy); p.arc(cx, cy, r, 0, Math.PI * 2); }
       else if (shape === 'rhomb') { const a = cs * 0.5 * k; p.moveTo(cx, cy - a); p.lineTo(cx + a, cy); p.lineTo(cx, cy + a); p.lineTo(cx - a, cy); p.closePath(); }

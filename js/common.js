@@ -6,23 +6,20 @@
 
   /* ───────── 설정 ───────── */
   FG.DEFAULTS = {
-    v: 9,                   // 설정 버전 (얼굴 변환 기본값이 바뀌면 올림)
+    v: 10,                   // 설정 버전 (얼굴 변환 기본값이 바뀌면 올림)
     title: 'CAR ESPERANTO',
     subtitle: '2026 DEGREE EXHIBITION\nUX DEGREE',
-    nameShape: 'oko',       // 이름 점 모양: oko | circle | rhomb
     askName: true,          // 찍은 뒤 이름 받기
     nameMax: 12,
     label: '게스트북',
     thanks: '소중한 시간을 내어 방문해 주셔서 진심으로 감사합니다.',
     thanksEn: 'Thank you for taking the time to visit us.',
-    receiptBg: 'stripes',   // 영수증 얼굴 배경: white | stripes | dots
     printerSide: 'right',   // 프린터가 아래 화면의 어느 쪽에 있나 (화살표 방향)
-    receiptStyle: 'dots',   // 영수증: dots(세로 · 동그라미 망점) | squares(세로 · 네모 망점) | classic(이전 가로형)
     printMode: 'browser',   // browser: 브라우저 인쇄 창(크롬 --kiosk-printing 이면 자동) · epos: 엡손 영수증 프린터로 바로(아이패드용)
     eposHost: '',           // 엡손 프린터 주소 (예: 192.168.0.50)
     cols: 24,
     rows: 32,
-    shape: 'square',        // square | dot
+    shape: 'square',        // 점 모양 하나로: square(네모) | dot(동그라미) — 위 화면 픽셀과 영수증 얼굴 망점에 같이 씀
     theme: 'mono',          // mono | blue | paper
     screenGrid: true,       // 화면 픽셀 사이 격자선
     countdown: 3,
@@ -70,6 +67,10 @@
     if ((saved.v || 1) < 6) delete saved.tapToShoot;
     if ((saved.v || 1) < 8) delete saved.thanksEn;
     if ((saved.v || 1) < 9) delete saved.receiptBg; // 줄무늬를 기본으로
+    if ((saved.v || 1) < 10) {                         // 겹치던 설정 셋을 '점 모양' 하나로
+      if (saved.receiptStyle === 'squares') saved.shape = 'square';
+      delete saved.receiptStyle; delete saved.nameShape; delete saved.receiptBg;
+    }
     if ((saved.v || 1) < 7) { delete saved.thanks; delete saved.thanksEn; if (saved.label === '얼굴 ' + '방명록') delete saved.label; }
     if ((saved.v || 1) < 5 && (saved.subtitle === 'Degree Show 2026' || saved.subtitle === '2026 한동대학교 디그리')) delete saved.subtitle;
     saved.v = FG.DEFAULTS.v;
@@ -734,8 +735,7 @@
   }
 
   FG.renderReceipt = function (entry, s) {
-    return s.receiptStyle === 'classic' ? FG.renderReceiptClassic(entry, s)
-      : FG.renderReceiptTall(entry, s, s.receiptStyle === 'squares' ? 'squares' : 'dots');
+    return FG.renderReceiptTall(entry, s, s.shape === 'dot' ? 'dots' : 'squares');
   };
 
   /* CAR ESPERANTO 로고 (윤곽 사각형 13개, 원본 좌표 · 오른쪽 위 기준으로 그림) */
@@ -760,7 +760,7 @@
     const spec = FG.receiptSpec(s.paper);
     const Wd = spec.dots, k = Wd / 576;
     const R = (v) => Math.round(v * k);
-    const m = R(34), cw = Wd - 2 * m;
+    const m = R(28), cw = Wd - 2 * m;
 
     // 얼굴 명암: 저장된 격자가 없으면(예전 기록) 픽셀 얼굴로 대신
     let tone = FG.toneOf(entry);
@@ -778,10 +778,10 @@
 
     const lines = [String(s.subtitle || '').split(/\n/)[0], s.title || '', '# ' + FG.pad(entry.no, 2)]
       .map((t) => FG.cleanName(t).trim()).filter(Boolean);
-    const hc = Math.max(1.6, Math.min(2.6 * k, ...lines.map((t) => (cw * 0.78) / Math.max(1, FG.dotCols(t)))));
+    const hc = Math.max(2, Math.floor(Math.min(3 * k, ...lines.map((t) => (cw * 0.8) / Math.max(1, FG.dotCols(t))))));
     const hGap = R(16);
     const thanks = FG.cleanName(String(s.thanksEn || '').replace(/[.!]\s*$/, ',')).trim();
-    const tc = Math.max(1.6, Math.min(2.68 * k, cw / FG.dotCols('THANK YOU FOR TAKING THE TIME')));
+    const tc = Math.max(2, Math.floor(Math.min(3 * k, cw / FG.dotCols('THANK YOU FOR TAKING THE TIME'))));
     const tLines = thanks ? wrapWords(thanks, Math.max(8, Math.floor((cw / tc + 1) / 6))) : [];
     const name = FG.cleanName(entry.name || '', 16).trim() || 'GUEST';
     const NL = FG.nameLines(name, cw, R(120), R(9));
@@ -802,7 +802,7 @@
     const step = Math.max(4, R(5));
     for (let x = m; x + rh <= m + cw; x += step) ctx.fillRect(x, y, rh, rh);          // 맨 위 점선
     y += rh + R(20);
-    const yHead = y, glyph = s.nameShape || 'oko';   // 모든 글자는 카 에스페란토 보행자 픽셀 글꼴
+    const yHead = y, glyph = 'pixel';   // 모든 글자는 카 에스페란토 보행자 픽셀 글꼴 (PX5, 정수 칸)
     lines.forEach((t, i) => { if (i) y += hGap; FG.drawDotText(ctx, t, m, y, { cell: hc, color: '#000', shape: glyph }); y += hc * 7; });
     FG.drawLogo(ctx, m + cw, yHead, logoH, Math.max(1, Math.round(k)));        // 오른쪽 위 로고 (오른쪽 끝을 여백에 맞춤)
     y = yHead + headH + blank;
@@ -862,10 +862,10 @@
       grid: !!s.receiptGrid, shape: s.shape,
       colors: { on: '#ffffff', off: '#000000', line: '#000000' },
     });
-    FG.drawBgPattern(ctx, FG.bgMaskOf({ ...entry, cols, rows }), m, py, cell, cols, rows, s.receiptBg || 'white', '#000');
+    FG.drawBgPattern(ctx, FG.bgMaskOf({ ...entry, cols, rows }), m, py, cell, cols, rows, 'white', '#000');
 
     // 글자는 카 에스페란토 보행자 언어(6 × 8 칸 픽셀 글꼴)
-    const shape = s.nameShape || 'oko';
+    const shape = 'pixel';
     const dot = (text, x, y, c) => FG.drawDotText(ctx, text, x, y, { cell: c, color: '#000', shape });
     const dotW = (text, c) => FG.dotCols(text) * c;
     const ruleH = Math.max(2, Math.round(3 * k));
