@@ -18,7 +18,6 @@
     receiptBg: 'stripes',   // 영수증 얼굴 배경: white | stripes | dots
     printerSide: 'right',   // 프린터가 아래 화면의 어느 쪽에 있나 (화살표 방향)
     receiptStyle: 'dots',   // 영수증: dots(세로 · 동그라미 망점) | squares(세로 · 네모 망점) | classic(이전 가로형)
-    receiptMark: 'CE',      // 세로 영수증 오른쪽 위 윤곽 글자 (최대 3자)
     printMode: 'browser',   // browser: 브라우저 인쇄 창(크롬 --kiosk-printing 이면 자동) · epos: 엡손 영수증 프린터로 바로(아이패드용)
     eposHost: '',           // 엡손 프린터 주소 (예: 192.168.0.50)
     cols: 24,
@@ -738,6 +737,22 @@
       : FG.renderReceiptTall(entry, s, s.receiptStyle === 'squares' ? 'squares' : 'dots');
   };
 
+  /* CAR ESPERANTO 로고 (윤곽 사각형 13개, 원본 좌표 · 오른쪽 위 기준으로 그림) */
+  const LOGO = { x0: 206, y0: 213, w: 479, h: 1065, rects: [
+    [446, 213, 132, 47], [400, 260, 46, 240], [578, 260, 45, 50], [578, 457, 45, 50], [502, 507, 76, 45],
+    [313, 605, 127, 50], [206, 660, 48, 225], [254, 740, 134, 50], [254, 885, 192, 50],
+    [497, 940, 135, 48], [452, 988, 45, 290], [632, 1040, 53, 50], [557, 1088, 75, 48]] };
+  FG.drawLogo = function (ctx, right, top, height, lw) {
+    const sc = height / LOGO.h, left = right - LOGO.w * sc;
+    ctx.fillStyle = '#000';
+    LOGO.rects.forEach(([x, y, w, h]) => {
+      const X = Math.round(left + (x - LOGO.x0) * sc), Y = Math.round(top + (y - LOGO.y0) * sc);
+      const W = Math.round(left + (x + w - LOGO.x0) * sc) - X, H = Math.round(top + (y + h - LOGO.y0) * sc) - Y;
+      ctx.fillRect(X, Y, W, lw); ctx.fillRect(X, Y + H - lw, W, lw);
+      ctx.fillRect(X, Y, lw, H); ctx.fillRect(X + W - lw, Y, lw, H);
+    });
+  };
+
   /* 세로 영수증 (2026.10 디자인)
      위: 점선 · 전시명 · 번호 · 오른쪽 위 윤곽 표식 / 가운데 여백 / 인사 · 이름 / 아래: 망점 얼굴 (동그라미 또는 네모) */
   FG.renderReceiptTall = function (entry, s, style) {
@@ -756,27 +771,27 @@
       for (let i = 0; i < data.length; i++) data[i] = bits[i] ? 0 : (bg && bg[i] ? 0 : 13);
       tone = { cols, rows, data };
     }
-    // 얼굴 쪽으로 당겨 자름: 가로 가운데 78%, 위 6%부터 거의 정사각형
+    // 얼굴 쪽으로 당겨 자름: 가로 가운데 78%, 위 5%부터 (세로 = 가로 × 0.87)
     const c0 = Math.round(tone.cols * 0.11), c1 = tone.cols - c0;
-    const r0 = Math.round(tone.rows * 0.05), r1 = Math.min(tone.rows, r0 + Math.round((c1 - c0) * 1.04));
+    const r0 = Math.round(tone.rows * 0.05), r1 = Math.min(tone.rows, r0 + Math.round((c1 - c0) * 0.87));
     const cell = cw / (c1 - c0), faceH = Math.round((r1 - r0) * cell);
 
     const lines = [String(s.subtitle || '').split(/\n/)[0], s.title || '', '# ' + FG.pad(entry.no, 2)]
       .map((t) => FG.cleanName(t).trim()).filter(Boolean);
-    const hc = Math.max(2, Math.min(R(3), ...lines.map((t) => Math.floor((cw * 0.78) / Math.max(1, FG.dotCols(t))))));
-    const hGap = R(15);
+    const hc = Math.max(1.6, Math.min(2.6 * k, ...lines.map((t) => (cw * 0.78) / Math.max(1, FG.dotCols(t)))));
+    const hGap = R(16);
     const thanks = FG.cleanName(String(s.thanksEn || '').replace(/[.!]\s*$/, ',')).trim();
-    const tc = Math.max(1.6, Math.min(R(3), cw / FG.dotCols('THANK YOU FOR TAKING THE TIME')));
+    const tc = Math.max(1.6, Math.min(2.68 * k, cw / FG.dotCols('THANK YOU FOR TAKING THE TIME')));
     const tLines = thanks ? wrapWords(thanks, Math.max(8, Math.floor((cw / tc + 1) / 6))) : [];
     const name = FG.cleanName(entry.name || '', 16).trim() || 'GUEST';
     const NL = FG.nameLines(name, cw, R(120), R(9));
     const nameH = NL.lines.length * FG.DOT_ROWS * NL.cell + (NL.lines.length - 1) * NL.cell * 2;
     const rh = Math.max(2, R(3));
 
-    const top = R(28), blank = R(300);
-    const headH = lines.length * hc * 7 + (lines.length - 1) * hGap;
-    const thanksH = tLines.length * tc * 7 + Math.max(0, tLines.length - 1) * R(7);
-    const Ht = top + rh + R(26) + headH + blank + thanksH + R(26) + nameH + R(30) + faceH + R(44);
+    const top = R(36), blank = R(350), logoH = R(101);
+    const headH = Math.max(lines.length * hc * 7 + (lines.length - 1) * hGap, logoH);
+    const thanksH = tLines.length * tc * 7 + Math.max(0, tLines.length - 1) * R(10);
+    const Ht = top + rh + R(20) + headH + blank + thanksH + R(40) + nameH + R(46) + faceH + R(32);
 
     const cv = document.createElement('canvas'); cv.width = Wd; cv.height = Ht;
     const ctx = cv.getContext('2d');
@@ -786,21 +801,15 @@
     let y = top;
     const step = Math.max(4, R(5));
     for (let x = m; x + rh <= m + cw; x += step) ctx.fillRect(x, y, rh, rh);          // 맨 위 점선
-    y += rh + R(26);
-    const yHead = y;
-    lines.forEach((t, i) => { if (i) y += hGap; FG.drawDotText(ctx, t, m, y, { cell: hc, color: '#000', shape: 'solid' }); y += hc * 7; });
-    // 오른쪽 위 윤곽 표식 (계단처럼 엇갈려)
-    const mk = Array.from(FG.cleanName(s.receiptMark || '').replace(/ /g, '')).slice(0, 3);
-    const mc = Math.max(3, R(5)), lw = Math.max(1, R(1.2));
-    mk.forEach((ch, i) => {
-      const gx = m + cw - 5 * mc - (i % 2 ? Math.round(mc * 3.4) : 0);
-      FG.drawDotOutline(ctx, ch, gx, yHead + i * Math.round(mc * 7.8), mc, lw, '#000');
-    });
-    y += blank;
-    tLines.forEach((t, i) => { if (i) y += R(7); FG.drawDotText(ctx, t, m, y, { cell: tc, color: '#000', shape: 'circle' }); y += tc * 7; });
-    if (tLines.length) y += R(26);
-    NL.lines.forEach((t, i) => { if (i) y += NL.cell * 2; FG.drawDotText(ctx, t, m, y, { cell: NL.cell, color: '#000', shape: s.nameShape || 'oko' }); y += FG.DOT_ROWS * NL.cell; });
-    y += R(30);
+    y += rh + R(20);
+    const yHead = y, glyph = s.nameShape || 'oko';   // 모든 글자는 카 에스페란토 보행자 픽셀 글꼴
+    lines.forEach((t, i) => { if (i) y += hGap; FG.drawDotText(ctx, t, m, y, { cell: hc, color: '#000', shape: glyph }); y += hc * 7; });
+    FG.drawLogo(ctx, m + cw, yHead, logoH, Math.max(1, Math.round(k)));        // 오른쪽 위 로고 (오른쪽 끝을 여백에 맞춤)
+    y = yHead + headH + blank;
+    tLines.forEach((t, i) => { if (i) y += R(10); FG.drawDotText(ctx, t, m, y, { cell: tc, color: '#000', shape: glyph }); y += tc * 7; });
+    if (tLines.length) y += R(40);
+    NL.lines.forEach((t, i) => { if (i) y += NL.cell * 2; FG.drawDotText(ctx, t, m, y, { cell: NL.cell, color: '#000', shape: glyph }); y += FG.DOT_ROWS * NL.cell; });
+    y += R(46);
 
     // 망점 얼굴: 어두울수록 큰 점. 동그라미는 이웃과 붙어 덩어리가 되고, 네모는 칸을 꽉 채움
     const path = new Path2D();
