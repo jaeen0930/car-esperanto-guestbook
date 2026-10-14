@@ -577,6 +577,8 @@
       const tnow = performance.now();
       const bits = src && crop ? pxr.run(src.el, crop, faceRel(tnow), S, false, maskNow(tnow)) : liveBits;
       const bgMask = src && crop && pxr.lastBg ? Uint8Array.from(pxr.lastBg) : null;
+      let tone = null;
+      try { tone = src && crop ? FG.toneGrid(src.el, crop, faceRel(tnow), S, maskNow(tnow)) : null; } catch (e) { console.warn('명암 격자를 만들지 못했어요', e); }
       frozen = { bits, t0: performance.now() };
       flash();
       audio.shutter();
@@ -586,7 +588,7 @@
       let name = '';
       if (S.askName) { await FG.sleep(900); name = await askName(); }
 
-      const entry = await FG.db.add({ bits: FG.bitsToStr(bits), bg: bgMask ? FG.bitsToStr(bgMask) : undefined, cols: S.cols, rows: S.rows, ts, name }, Number(S.numberStart) || 1);
+      const entry = await FG.db.add({ bits: FG.bitsToStr(bits), bg: FG.packBg(bgMask ? FG.bitsToStr(bgMask) : '', tone), cols: S.cols, rows: S.rows, ts, name }, Number(S.numberStart) || 1);
       archive.push(entry);
       count = archive.length;
       FG.bus.post({ type: 'entry', entry });

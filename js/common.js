@@ -17,6 +17,8 @@
     thanksEn: 'Thank you for taking the time to visit us.',
     receiptBg: 'stripes',   // 영수증 얼굴 배경: white | stripes | dots
     printerSide: 'right',   // 프린터가 아래 화면의 어느 쪽에 있나 (화살표 방향)
+    receiptStyle: 'dots',   // 영수증: dots(세로 · 동그라미 망점) | squares(세로 · 네모 망점) | classic(이전 가로형)
+    receiptMark: 'CE',      // 세로 영수증 오른쪽 위 윤곽 글자 (최대 3자)
     printMode: 'browser',   // browser: 브라우저 인쇄 창(크롬 --kiosk-printing 이면 자동) · epos: 엡손 영수증 프린터로 바로(아이패드용)
     eposHost: '',           // 엡손 프린터 주소 (예: 192.168.0.50)
     cols: 24,
@@ -483,6 +485,75 @@
     };
   };
 
+  /* 망점 영수증용 명암 격자: 0(흰) ~ 15(검정). 배경(사람 밖)은 0.
+     픽셀 얼굴과 같은 화면 영역을 더 촘촘한 격자로 읽어요. */
+  FG.TONE = { cols: 45, rows: 60 };
+  FG.toneGrid = function (src, crop, face, s, mask, cols, rows) {
+    cols = cols || FG.TONE.cols; rows = rows || FG.TONE.rows;
+    const SS = 4, W = cols * SS, H = rows * SS;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    ctx.save(); if (s.mirror) { ctx.translate(W, 0); ctx.scale(-1, 1); }
+    try { ctx.drawImage(src, crop.x, crop.y, crop.w, crop.h, 0, 0, W, H); } catch (e) { return null; }
+    ctx.restore();
+    const d = ctx.getImageData(0, 0, W, H).data;
+    const gray = new Float32Array(cols * rows);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      let acc = 0;
+      for (let y = 0; y < SS; y++) { let p = ((r * SS + y) * W + c * SS) * 4; for (let x = 0; x < SS; x++, p += 4) acc += 0.2126 * d[p] + 0.7152 * d[p + 1] + 0.0722 * d[p + 2]; }
+      gray[r * cols + c] = acc / (SS * SS);
+    }
+    const amt = s.detail == null ? 0.8 : Number(s.detail);
+    if (amt > 0) { const b = boxBlur(gray, cols, rows, 2); for (let i = 0; i < gray.length; i++) gray[i] += amt * 0.8 * (gray[i] - b[i]); }
+    const f = face || { x: 0.32, y: 0.24, w: 0.36, h: 0.4 };
+    const fx = f.x + f.w / 2, fy = f.y + f.h / 2;
+    const vals = [];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      if (Math.hypot(((c + 0.5) / cols - fx) / (f.w * 0.42), ((r + 0.5) / rows - fy) / (f.h * 0.5)) < 1) vals.push(gray[r * cols + c]);
+    }
+    const ref = Float32Array.from(vals.length > 10 ? vals : gray).sort();
+    const pct = (q) => ref[Math.max(0, Math.min(ref.length - 1, Math.round(q * (ref.length - 1))))];
+    const lo = pct(0.02), hi = pct(0.98), span = Math.max(20, hi - lo);
+    let person = null;
+    if (mask && mask.el) {
+      const mc = document.createElement('canvas'); mc.width = cols; mc.height = rows;
+      const mx = mc.getContext('2d', { willReadFrequently: true });
+      mx.save(); if (s.mirror) { mx.translate(cols, 0); mx.scale(-1, 1); }
+      try { mx.drawImage(mask.el, crop.x * mask.scale, crop.y * mask.scale, crop.w * mask.scale, crop.h * mask.scale, 0, 0, cols, rows); } catch (e) { /* 없음 */ }
+      mx.restore();
+      const md = mx.getImageData(0, 0, cols, rows).data;
+      let aVar = false; for (let i = 3; i < md.length; i += 4) if (md[i] < 250) { aVar = true; break; }
+      person = new Float32Array(cols * rows);
+      for (let i = 0; i < person.length; i++) person[i] = (aVar ? md[i * 4 + 3] : md[i * 4]) / 255;
+    }
+    const out = new Uint8Array(cols * rows);
+    const bgOn = (s.bgDarken == null ? 0.85 : Number(s.bgDarken)) > 0;
+    for (let i = 0; i < out.length; i++) {
+      const g = Math.max(0, Math.min(1, (gray[i] - lo) / span));
+      let dark = Math.pow(1 - g, 1.15);
+      if (person && bgOn) dark *= smoothstep(0.25, 0.65, person[i]);
+      out[i] = Math.max(0, Math.min(15, Math.round(dark * 15)));
+    }
+    return { cols, rows, data: out };
+  };
+  /* 배경 칸 표시와 명암 격자를 bg 한 칸에 함께 저장: "0101…|t36x48:0f3a…" (DB 구조는 그대로) */
+  FG.packBg = function (maskStr, tone) {
+    let out = maskStr || '';
+    if (tone) out += '|t' + tone.cols + 'x' + tone.rows + ':' + Array.prototype.map.call(tone.data, (v) => v.toString(16)).join('');
+    return out || undefined;
+  };
+  FG.toneOf = function (entry) {
+    if (entry.tone && entry.tone.data) return entry.tone;
+    const m = typeof entry.bg === 'string' && entry.bg.match(/\|t(\d+)x(\d+):([0-9a-f]+)/);
+    if (!m) return null;
+    const cols = +m[1], rows = +m[2], hex = m[3];
+    if (hex.length !== cols * rows) return null;
+    const data = new Uint8Array(cols * rows);
+    for (let i = 0; i < data.length; i++) data[i] = parseInt(hex[i], 16);
+    return { cols, rows, data };
+  };
+
   /* ───────── 그리기 ───────── */
   /* opt: { grid, shape, reveal(보이는 줄 수), colors{on,off,line} } */
   FG.drawPortrait = function (ctx, bits, cols, rows, x, y, w, h, opt) {
@@ -621,7 +692,8 @@
   /* 배경 칸 찾기: 저장된 배경 마스크가 없으면(예전 기록) 가장자리에서 이어진 흰 칸을 배경으로 봄 */
   FG.bgMaskOf = function (entry) {
     const cols = entry.cols, rows = entry.rows, n = cols * rows;
-    if (typeof entry.bg === 'string' && entry.bg.length === n) return FG.strToBits(entry.bg);
+    const bgm = typeof entry.bg === 'string' ? entry.bg.split('|')[0] : '';
+    if (bgm.length === n) return FG.strToBits(bgm);
     const bits = typeof entry.bits === 'string' ? FG.strToBits(entry.bits) : entry.bits;
     const m = new Uint8Array(n), st = [];
     const push = (c, r) => { const i = r * cols + c; if (c < 0 || r < 0 || c >= cols || r >= rows || m[i] || !bits[i]) return; m[i] = 1; st.push(i); };
@@ -662,6 +734,101 @@
   }
 
   FG.renderReceipt = function (entry, s) {
+    return s.receiptStyle === 'classic' ? FG.renderReceiptClassic(entry, s)
+      : FG.renderReceiptTall(entry, s, s.receiptStyle === 'squares' ? 'squares' : 'dots');
+  };
+
+  /* 세로 영수증 (2026.10 디자인)
+     위: 점선 · 전시명 · 번호 · 오른쪽 위 윤곽 표식 / 가운데 여백 / 인사 · 이름 / 아래: 망점 얼굴 (동그라미 또는 네모) */
+  FG.renderReceiptTall = function (entry, s, style) {
+    const spec = FG.receiptSpec(s.paper);
+    const Wd = spec.dots, k = Wd / 576;
+    const R = (v) => Math.round(v * k);
+    const m = R(34), cw = Wd - 2 * m;
+
+    // 얼굴 명암: 저장된 격자가 없으면(예전 기록) 픽셀 얼굴로 대신
+    let tone = FG.toneOf(entry);
+    if (!tone) {
+      const cols = entry.cols || s.cols, rows = entry.rows || s.rows;
+      const bits = typeof entry.bits === 'string' ? FG.strToBits(entry.bits) : entry.bits;
+      const bg = FG.bgMaskOf({ ...entry, cols, rows });
+      const data = new Uint8Array(cols * rows);
+      for (let i = 0; i < data.length; i++) data[i] = bits[i] ? 0 : (bg && bg[i] ? 0 : 13);
+      tone = { cols, rows, data };
+    }
+    // 얼굴 쪽으로 당겨 자름: 가로 가운데 78%, 위 6%부터 거의 정사각형
+    const c0 = Math.round(tone.cols * 0.11), c1 = tone.cols - c0;
+    const r0 = Math.round(tone.rows * 0.05), r1 = Math.min(tone.rows, r0 + Math.round((c1 - c0) * 1.04));
+    const cell = cw / (c1 - c0), faceH = Math.round((r1 - r0) * cell);
+
+    const lines = [String(s.subtitle || '').split(/\n/)[0], s.title || '', '# ' + FG.pad(entry.no, 2)]
+      .map((t) => FG.cleanName(t).trim()).filter(Boolean);
+    const hc = Math.max(2, Math.min(R(3), ...lines.map((t) => Math.floor((cw * 0.78) / Math.max(1, FG.dotCols(t))))));
+    const hGap = R(15);
+    const thanks = FG.cleanName(String(s.thanksEn || '').replace(/[.!]\s*$/, ',')).trim();
+    const tc = Math.max(1.6, Math.min(R(3), cw / FG.dotCols('THANK YOU FOR TAKING THE TIME')));
+    const tLines = thanks ? wrapWords(thanks, Math.max(8, Math.floor((cw / tc + 1) / 6))) : [];
+    const name = FG.cleanName(entry.name || '', 16).trim() || 'GUEST';
+    const NL = FG.nameLines(name, cw, R(120), R(9));
+    const nameH = NL.lines.length * FG.DOT_ROWS * NL.cell + (NL.lines.length - 1) * NL.cell * 2;
+    const rh = Math.max(2, R(3));
+
+    const top = R(28), blank = R(300);
+    const headH = lines.length * hc * 7 + (lines.length - 1) * hGap;
+    const thanksH = tLines.length * tc * 7 + Math.max(0, tLines.length - 1) * R(7);
+    const Ht = top + rh + R(26) + headH + blank + thanksH + R(26) + nameH + R(30) + faceH + R(44);
+
+    const cv = document.createElement('canvas'); cv.width = Wd; cv.height = Ht;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, Wd, Ht);
+    ctx.fillStyle = '#000';
+
+    let y = top;
+    const step = Math.max(4, R(5));
+    for (let x = m; x + rh <= m + cw; x += step) ctx.fillRect(x, y, rh, rh);          // 맨 위 점선
+    y += rh + R(26);
+    const yHead = y;
+    lines.forEach((t, i) => { if (i) y += hGap; FG.drawDotText(ctx, t, m, y, { cell: hc, color: '#000', shape: 'solid' }); y += hc * 7; });
+    // 오른쪽 위 윤곽 표식 (계단처럼 엇갈려)
+    const mk = Array.from(FG.cleanName(s.receiptMark || '').replace(/ /g, '')).slice(0, 3);
+    const mc = Math.max(3, R(5)), lw = Math.max(1, R(1.2));
+    mk.forEach((ch, i) => {
+      const gx = m + cw - 5 * mc - (i % 2 ? Math.round(mc * 3.4) : 0);
+      FG.drawDotOutline(ctx, ch, gx, yHead + i * Math.round(mc * 7.8), mc, lw, '#000');
+    });
+    y += blank;
+    tLines.forEach((t, i) => { if (i) y += R(7); FG.drawDotText(ctx, t, m, y, { cell: tc, color: '#000', shape: 'circle' }); y += tc * 7; });
+    if (tLines.length) y += R(26);
+    NL.lines.forEach((t, i) => { if (i) y += NL.cell * 2; FG.drawDotText(ctx, t, m, y, { cell: NL.cell, color: '#000', shape: s.nameShape || 'oko' }); y += FG.DOT_ROWS * NL.cell; });
+    y += R(30);
+
+    // 망점 얼굴: 어두울수록 큰 점. 동그라미는 이웃과 붙어 덩어리가 되고, 네모는 칸을 꽉 채움
+    const path = new Path2D();
+    for (let r = r0; r < r1; r++) for (let c = c0; c < c1; c++) {
+      const v = tone.data[r * tone.cols + c]; if (v < 2) continue;
+      const dk = v / 15, cx = m + (c - c0 + 0.5) * cell, cy = y + (r - r0 + 0.5) * cell;
+      if (style === 'squares') {
+        const a = dk >= 0.9 ? cell + 1 : cell * Math.sqrt(dk);   // 거의 검정이면 이웃과 틈 없이 붙게
+        const x0 = Math.floor(cx - a / 2), y0 = Math.floor(cy - a / 2);
+        path.rect(x0, y0, Math.max(1, Math.ceil(cx + a / 2) - x0), Math.max(1, Math.ceil(cy + a / 2) - y0));
+      } else {
+        const rr = Math.max(0.9, cell * 0.62 * Math.sqrt(dk));
+        path.moveTo(cx + rr, cy); path.arc(cx, cy, rr, 0, Math.PI * 2);
+      }
+    }
+    ctx.fill(path);
+
+    const img = ctx.getImageData(0, 0, Wd, Ht);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = img.data[i] * 0.3 + img.data[i + 1] * 0.59 + img.data[i + 2] * 0.11 > 140 ? 255 : 0;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    return cv;
+  };
+
+  /* 이전 가로 영수증 */
+  FG.renderReceiptClassic = function (entry, s) {
     const spec = FG.receiptSpec(s.paper);
     const H = spec.dots;
     const k = H / 576;

@@ -20,7 +20,8 @@ Y:["#   #","#   #"," # # ","  #  ","  #  ","  #  ","  #  "], Z:["#####","    #",
 ".":["     ","     ","     ","     ","     ","     ","  #  "], ",":["     ","     ","     ","     ","     ","  #  "," #   "], "-":["     ","     ","     ","#####","     ","     ","     "],
 "?":[" ### ","#   #","    #","   # ","  #  ","     ","  #  "], "!":["  #  ","  #  ","  #  ","  #  ","  #  ","     ","  #  "], "/":["    #","    #","   # ","  #  "," #   ","#    ","#    "],
     /* 게스트북에서 시간 표기용으로 더한 글자 (변환기에는 없음) */
-    ":":["     ","  #  ","  #  ","     ","  #  ","  #  ","     "]};
+    ":":["     ","  #  ","  #  ","     ","  #  ","  #  ","     "],
+    "#":[" # # "," # # ","#####"," # # ","#####"," # # "," # # "]};
 
   const GW = 6, GH = 8;
   FG.DOT_CHARS = Object.keys(PX5).join('') + ' ';
@@ -48,6 +49,7 @@ Y:["#   #","#   #"," # # ","  #  ","  #  ","  #  ","  #  "], Z:["#####","    #",
     const add = (p, cx, cy, k) => {
       if (shape === 'circle') { const r = cs * 0.46 * k; p.moveTo(cx + r, cy); p.arc(cx, cy, r, 0, Math.PI * 2); }
       else if (shape === 'rhomb') { const a = cs * 0.5 * k; p.moveTo(cx, cy - a); p.lineTo(cx + a, cy); p.lineTo(cx, cy + a); p.lineTo(cx - a, cy); p.closePath(); }
+      else if (shape === 'solid') { p.rect(Math.round(cx - cs / 2), Math.round(cy - cs / 2), Math.round(cs), Math.round(cs)); }
       else { const h = cs * 0.45 * k; p.rect(Math.round(cx - h), Math.round(cy - h), Math.round(h * 2), Math.round(h * 2)); }
     };
     chars.forEach((ch, n) => {
@@ -65,6 +67,21 @@ Y:["#   #","#   #"," # # ","  #  ","  #  ","  #  ","  #  "], Z:["#####","    #",
     if (opt.ghost) { ctx.fillStyle = opt.ghost; ctx.fill(ghost); }
     ctx.fillStyle = opt.color;
     ctx.fill(lit);
+  };
+
+  /* 글자 윤곽만 가는 선으로 (세로 영수증 오른쪽 위 표식) */
+  FG.drawDotOutline = function (ctx, ch, x, y, cell, lw, color) {
+    const px = PX5[ch]; if (!px) return;
+    const on = (i, j) => j >= 0 && j < 7 && i >= 0 && i < 5 && px[j][i] === '#';
+    ctx.fillStyle = color;
+    for (let j = 0; j < 7; j++) for (let i = 0; i < 5; i++) {
+      if (!on(i, j)) continue;
+      const X = Math.round(x + i * cell), Y = Math.round(y + j * cell);
+      if (!on(i, j - 1)) ctx.fillRect(X, Y, cell, lw);
+      if (!on(i, j + 1)) ctx.fillRect(X, Y + cell - lw, cell, lw);
+      if (!on(i - 1, j)) ctx.fillRect(X, Y, lw, cell);
+      if (!on(i + 1, j)) ctx.fillRect(X + cell - lw, Y, lw, cell);
+    }
   };
 
   /* 주어진 폭에 맞는 칸 크기 */

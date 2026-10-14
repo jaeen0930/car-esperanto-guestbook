@@ -225,7 +225,9 @@
     const my = ++cardToken;
     await FG.fontsReady;
     if (my !== cardToken) return;
-    document.getElementById('cardImg').src = FG.renderReceipt(e, S).toDataURL('image/png');
+    const rc = FG.renderReceipt(e, S), ci = document.getElementById('cardImg');
+    ci.classList.toggle('tall', rc.height > rc.width);
+    ci.src = rc.toDataURL('image/png');
     document.getElementById('cardImg').alt = (e.name || 'GUEST') + ' · NO ' + FG.pad(e.no);
     document.getElementById('cardNo').textContent = 'NO ' + FG.pad(e.no) + (e.name ? ' · ' + e.name : '');
     if (cardEl.hidden) { cardEl.hidden = false; void cardEl.offsetWidth; }

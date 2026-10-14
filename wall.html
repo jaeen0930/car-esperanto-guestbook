@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>게스트북 · 벽</title>
-<link rel="stylesheet" href="css/base.css?v=1791872208">
+<link rel="stylesheet" href="css/base.css?v=1791962963">
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: var(--wall, #141414); color: var(--text, #f2f1ec); font-family: var(--sans); -webkit-font-smoothing: antialiased; user-select: none; }
   #wall { position: fixed; inset: 0; display: block; }
@@ -23,6 +23,7 @@
   #card[hidden] { display: none; }
   .card-inner { display: flex; flex-direction: column; align-items: center; gap: 2.4vmin; transform: translateY(14px) scale(.97); transition: transform 320ms cubic-bezier(.2,.8,.2,1); }
   #card.on .card-inner { transform: none; }
+  #cardImg.tall { width: auto; height: min(80vh, 1400px); max-width: 78vw; }
   #cardImg { display: block; width: min(78vw, calc(70vh * 1.78)); height: auto; background: #fff; image-rendering: pixelated; box-shadow: 0 2px 0 rgba(0,0,0,.25), 0 30px 80px -20px rgba(0,0,0,.6); border-radius: 3px; }
   .card-nav { display: flex; align-items: center; gap: 2vmin; color: var(--dim); font: 500 1.8vmin var(--mono); }
   .card-nav button { appearance: none; border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); background: transparent; color: var(--text); width: 5.2vmin; height: 5.2vmin; border-radius: 50%; font: 500 2.4vmin var(--mono); cursor: pointer; }
@@ -56,8 +57,8 @@
   </div>
 </div>
 <script src="config.js"></script>
-<script src="js/common.js?v=1791872208"></script>
-<script src="js/dotname.js?v=1791872208"></script>
-<script src="js/wall.js?v=1791872208"></script>
+<script src="js/common.js?v=1791962963"></script>
+<script src="js/dotname.js?v=1791962963"></script>
+<script src="js/wall.js?v=1791962963"></script>
 </body>
 </html>

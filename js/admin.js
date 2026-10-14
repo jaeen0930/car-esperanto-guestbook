@@ -116,8 +116,11 @@
       const pv = $('pvReceipt');
       pv.width = r.width; pv.height = r.height;
       pv.getContext('2d').drawImage(r, 0, 0);
-      pv.style.width = (S.paper === 58 ? 300 : 380) + 'px';
-      $('pvPaper').textContent = S.paper + 'mm 감열지 · 가로 영수증 ' + Math.round(r.width / r.height * FG.receiptSpec(S.paper).printable) + ' × ' + FG.receiptSpec(S.paper).printable + ' mm';
+      const tall = r.height > r.width, sp = FG.receiptSpec(S.paper);
+      pv.style.width = (tall ? (S.paper === 58 ? 170 : 240) : (S.paper === 58 ? 300 : 380)) + 'px';
+      $('pvPaper').textContent = tall
+        ? S.paper + 'mm 감열지 · 세로 영수증 ' + sp.printable + ' × ' + Math.round(r.height / r.width * sp.printable) + ' mm'
+        : S.paper + 'mm 감열지 · 가로 영수증 ' + Math.round(r.width / r.height * sp.printable) + ' × ' + sp.printable + ' mm';
     });
   }
   $('btnTestPrint').addEventListener('click', async () => {
