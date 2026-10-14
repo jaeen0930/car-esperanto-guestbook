@@ -78,6 +78,7 @@
   /* 설정도 웹에 두면 키오스크 · 벽 · 관리 기기가 같은 설정을 써요 */
   FG.syncSettings = async function () {
     if (!FG.cloud) return false;
+    try { if (Date.now() - Number(localStorage.getItem(KEY + '.savedAt') || 0) < 20000) return false; } catch (e) { /* 없음 */ }
     try {
       const data = await FG.cloud.getSettings();
       if (!data) return false;
@@ -89,7 +90,7 @@
   };
   FG.saveSettings = function (s) {
     if (FG.cloud) FG.cloud.saveSettings(s).catch((e) => console.warn('설정을 웹에 저장하지 못했어요', e));
-    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* 저장 불가 환경 */ }
+    try { localStorage.setItem(KEY, JSON.stringify(s)); localStorage.setItem(KEY + '.savedAt', String(Date.now())); } catch (e) { /* 저장 불가 환경 */ }
     FG.bus.post({ type: 'settings' });
   };
   FG.themeOf = (s) => FG.THEMES[s.theme] || FG.THEMES.mono;
@@ -771,9 +772,8 @@
       for (let i = 0; i < data.length; i++) data[i] = bits[i] ? 0 : (bg && bg[i] ? 0 : 13);
       tone = { cols, rows, data };
     }
-    // 얼굴 쪽으로 당겨 자름: 가로 가운데 78%, 위 5%부터 (세로 = 가로 × 0.87)
-    const c0 = Math.round(tone.cols * 0.11), c1 = tone.cols - c0;
-    const r0 = Math.round(tone.rows * 0.05), r1 = Math.min(tone.rows, r0 + Math.round((c1 - c0) * 0.87));
+    // 화면에 보인 영역 그대로 (자르지 않음): 위 화면의 픽셀 얼굴과 같은 구도
+    const c0 = 0, c1 = tone.cols, r0 = 0, r1 = tone.rows;
     const cell = cw / (c1 - c0), faceH = Math.round((r1 - r0) * cell);
 
     const lines = [String(s.subtitle || '').split(/\n/)[0], s.title || '', '# ' + FG.pad(entry.no, 2)]

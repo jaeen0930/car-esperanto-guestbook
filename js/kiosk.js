@@ -597,6 +597,7 @@
       setState({ state: 'done', no: entry.no, count, printed: !!S.print, name });
       if (S.print) {
         await FG.fontsReady;
+        try { if (await Promise.race([FG.syncSettings(), FG.sleep(1500).then(() => false)])) applySettings(); } catch (e) { /* 그대로 */ }
         const cv = FG.renderReceipt(entry, S);
         await FG.sleep(120);
         Promise.resolve(FG.printCanvas(cv, S)).catch((err) => { console.warn(err); toast('프린터에 닿지 않았어요. 게스트북에는 저장됐어요'); });
