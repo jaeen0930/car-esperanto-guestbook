@@ -743,15 +743,25 @@
     [446, 213, 132, 47], [400, 260, 46, 240], [578, 260, 45, 50], [578, 457, 45, 50], [502, 507, 76, 45],
     [313, 605, 127, 50], [206, 660, 48, 225], [254, 740, 134, 50], [254, 885, 192, 50],
     [497, 940, 135, 48], [452, 988, 45, 290], [632, 1040, 53, 50], [557, 1088, 75, 48]] };
-  FG.drawLogo = function (ctx, right, top, height, lw) {
+  FG.drawLogo = function (ctx, right, top, height, lw, dotted) {
     const sc = height / LOGO.h, left = right - LOGO.w * sc;
     ctx.fillStyle = '#000';
+    const p = new Path2D();
     LOGO.rects.forEach(([x, y, w, h]) => {
       const X = Math.round(left + (x - LOGO.x0) * sc), Y = Math.round(top + (y - LOGO.y0) * sc);
       const W = Math.round(left + (x + w - LOGO.x0) * sc) - X, H = Math.round(top + (y + h - LOGO.y0) * sc) - Y;
-      ctx.fillRect(X, Y, W, lw); ctx.fillRect(X, Y + H - lw, W, lw);
-      ctx.fillRect(X, Y, lw, H); ctx.fillRect(X + W - lw, Y, lw, H);
+      if (!dotted) {
+        ctx.fillRect(X, Y, W, lw); ctx.fillRect(X, Y + H - lw, W, lw);
+        ctx.fillRect(X, Y, lw, H); ctx.fillRect(X + W - lw, Y, lw, H);
+        return;
+      }
+      // 동그라미 버전: 윤곽을 작은 동그라미 점으로 (점 지름 d, 간격 d + 1)
+      const d = Math.max(3, lw * 3), st = d + 1;
+      const nx = Math.max(1, Math.round((W - d) / st)), ny = Math.max(1, Math.round((H - d) / st));
+      for (let i = 0; i <= nx; i++) { const px = Math.round(X + (i * (W - d)) / nx); FG.roundPx(p, px, Y, d, d); FG.roundPx(p, px, Y + H - d, d, d); }
+      for (let j = 1; j < ny; j++) { const py = Math.round(Y + (j * (H - d)) / ny); FG.roundPx(p, X, py, d, d); FG.roundPx(p, X + W - d, py, d, d); }
     });
+    if (dotted) ctx.fill(p);
   };
 
   /* 세로 영수증 (2026.10 디자인)
@@ -762,26 +772,22 @@
     const R = (v) => Math.round(v * k);
     const m = R(28), cw = Wd - 2 * m;
 
-    // 얼굴 명암: 저장된 격자가 없으면(예전 기록) 픽셀 얼굴로 대신
-    let tone = FG.toneOf(entry);
-    if (!tone) {
-      const cols = entry.cols || s.cols, rows = entry.rows || s.rows;
-      const bits = typeof entry.bits === 'string' ? FG.strToBits(entry.bits) : entry.bits;
-      const bg = FG.bgMaskOf({ ...entry, cols, rows });
-      const data = new Uint8Array(cols * rows);
-      for (let i = 0; i < data.length; i++) data[i] = bits[i] ? 0 : (bg && bg[i] ? 0 : 13);
-      tone = { cols, rows, data };
-    }
+    // 얼굴: 위 화면에 보이던 실제 픽셀 사진 그대로 (켜진 칸 = 밝음, 꺼진 칸 = 어두움)
+    const cols = entry.cols || s.cols, rows = entry.rows || s.rows;
+    const bits = typeof entry.bits === 'string' ? FG.strToBits(entry.bits) : entry.bits;
+    const dark = (r, c) => !bits[r * cols + c];
+    const round = style === 'dots';
+
     // 디자인 원본(1200 × 2423) 비율 그대로: 모든 위치를 원본 좌표 × q 로 잡음
     const q = Wd / 1200, Q = (v) => Math.round(v * q);
     const Ht = Q(2423);
     const faceTop = Q(1449), faceH = Q(2361) - faceTop;
-    // 얼굴 칸: 가로를 꽉 채우고, 세로는 머리 꼭대기부터 상자 높이만큼 (원본처럼 얼굴을 크게)
-    const cell = cw / tone.cols;
-    const nRows = Math.min(tone.rows, Math.max(1, Math.floor(faceH / cell)));
+    // 얼굴 상자: 가로를 꽉 채우고, 세로는 머리 꼭대기부터 상자 높이만큼 (디자인처럼 얼굴을 크게)
+    const cell = cw / cols;
+    const nRows = Math.min(rows, Math.max(1, Math.floor(faceH / cell)));
     let firstInk = 0;
-    for (let r = 0; r < tone.rows; r++) { let n = 0; for (let c = 0; c < tone.cols; c++) if (tone.data[r * tone.cols + c] >= 4) n++; if (n >= 3) { firstInk = r; break; } }
-    const c0 = 0, c1 = tone.cols, r0 = Math.max(0, Math.min(tone.rows - nRows, firstInk - 1)), r1 = r0 + nRows;
+    for (let r = 0; r < rows; r++) { let n = 0; for (let c = 0; c < cols; c++) if (dark(r, c)) n++; if (n >= 2) { firstInk = r; break; } }
+    const r0 = Math.max(0, Math.min(rows - nRows, firstInk - 1)), r1 = r0 + nRows;
 
     const lines = [String(s.subtitle || '').split(/\n/)[0], s.title || '', '# ' + FG.pad(entry.no, 2)]
       .map((t) => FG.cleanName(t).trim()).filter(Boolean);
@@ -791,40 +797,54 @@
     const tLines = thanks ? wrapWords(thanks, Math.max(8, Math.floor((cw / tc + 1) / 6))) : [];
     const name = FG.cleanName(entry.name || '', 16).trim() || 'GUEST';
     const NL = FG.nameLines(name, cw, Q(160), Math.max(2, Math.floor(Q(160) / 7)));
-    const rh = Math.max(2, Q(7));
 
     const cv = document.createElement('canvas'); cv.width = Wd; cv.height = Ht;
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, Wd, Ht);
     ctx.fillStyle = '#000';
 
-    const step = Math.max(4, Q(10));
-    for (let x = m; x + rh <= m + cw; x += step) ctx.fillRect(x, Q(81), rh, rh);          // 맨 위 점선
-    const glyph = 'pixel';   // 모든 글자는 카 에스페란토 보행자 픽셀 글꼴 (PX5, 정수 칸)
+    // 맨 위 점선: 네모 버전은 네모 점, 동그라미 버전은 동그라미 점
+    const rh = round ? Math.max(3, Q(7)) : Math.max(2, Q(5)), step = rh + Math.max(2, Q(4));
+    const rule = new Path2D();
+    for (let x = m; x + rh <= m + cw; x += step) { if (round) FG.roundPx(rule, x, Q(81), rh, rh); else rule.rect(x, Q(81), rh, rh); }
+    ctx.fill(rule);
+    // 모든 글자는 카 에스페란토 보행자 픽셀 글꼴 (PX5, 정수 칸). 네모 버전 = 네모 픽셀, 동그라미 버전 = 동그라미 픽셀
+    const glyph = round ? 'round' : 'pixel';
     const pitch = Q(89);     // 원본의 줄 간격 (윗줄 시작 → 다음 줄 시작)
     lines.forEach((t, i) => FG.drawDotText(ctx, t, m, Q(118) + i * pitch, { cell: hc, color: '#000', shape: glyph }));
-    FG.drawLogo(ctx, m + cw, Q(118), Q(232), Math.max(1, Math.round(k)));        // 오른쪽 위 로고
+    FG.drawLogo(ctx, m + cw, Q(118), Q(232), Math.max(1, Math.round(k)), round);        // 오른쪽 위 로고
     const tPitch = Math.max(tc * 7 + Q(10), Q(58));
     tLines.forEach((t, i) => FG.drawDotText(ctx, t, m, Q(1050) + i * tPitch, { cell: tc, color: '#000', shape: glyph }));
     let y = Q(1220) + Math.round((Q(160) - NL.height) / 2);
     NL.lines.forEach((t) => { FG.drawDotText(ctx, t, m, y, { cell: NL.cell, color: '#000', shape: glyph }); y += (FG.DOT_ROWS + 2) * NL.cell; });
-    y = faceTop + Math.round((faceH - nRows * cell) / 2);
 
-    // 망점 얼굴: 어두울수록 큰 점. 동그라미는 이웃과 붙어 덩어리가 되고, 네모는 칸을 꽉 채움
+    // 픽셀 얼굴: 칸 경계를 정수 픽셀에 맞춤
+    const fy = faceTop + Math.round((faceH - nRows * cell) / 2);
+    const xs = [], ys = [];
+    for (let c = 0; c <= cols; c++) xs[c] = Math.round(m + c * cell);
+    for (let r = 0; r <= nRows; r++) ys[r] = Math.round(fy + r * cell);
     const path = new Path2D();
-    for (let r = r0; r < r1; r++) for (let c = c0; c < c1; c++) {
-      const v = tone.data[r * tone.cols + c]; if (v < 2) continue;
-      const dk = v / 15, cx = m + (c - c0 + 0.5) * cell, cy = y + (r - r0 + 0.5) * cell;
-      if (style === 'squares') {
-        const a = dk >= 0.9 ? cell + 1 : cell * Math.sqrt(dk);   // 거의 검정이면 이웃과 틈 없이 붙게
-        const x0 = Math.floor(cx - a / 2), y0 = Math.floor(cy - a / 2);
-        path.rect(x0, y0, Math.max(1, Math.ceil(cx + a / 2) - x0), Math.max(1, Math.ceil(cy + a / 2) - y0));
-      } else {
-        const rr = Math.max(0.9, cell * 0.62 * Math.sqrt(dk));
-        path.moveTo(cx + rr, cy); path.arc(cx, cy, rr, 0, Math.PI * 2);
+    if (round) {
+      // 동그라미: 어두운 칸마다 검은 동그라미 (화면의 동그라미 픽셀과 같은 크기 비율)
+      for (let r = r0; r < r1; r++) for (let c = 0; c < cols; c++) {
+        if (!dark(r, c)) continue;
+        const X = xs[c], Y = ys[r - r0], w = xs[c + 1] - X, h = ys[r - r0 + 1] - Y;
+        const rr = Math.min(w, h) * 0.47;
+        path.moveTo(X + w / 2 + rr, Y + h / 2); path.arc(X + w / 2, Y + h / 2, rr, 0, Math.PI * 2);
       }
+      ctx.fill(path);
+    } else {
+      // 네모: 화면과 같이 격자선이 있는 픽셀 (상자 전체를 검게 칠하고 밝은 칸만 흰 네모로 비움)
+      const gap = Math.max(1, Math.round(cell * 0.07));
+      ctx.fillRect(xs[0], ys[0], xs[cols] - xs[0], ys[nRows] - ys[0]);
+      ctx.fillStyle = '#fff';
+      for (let r = r0; r < r1; r++) for (let c = 0; c < cols; c++) {
+        if (dark(r, c)) continue;
+        const X = xs[c], Y = ys[r - r0];
+        ctx.fillRect(X + gap, Y + gap, xs[c + 1] - X - gap, ys[r - r0 + 1] - Y - gap);
+      }
+      ctx.fillStyle = '#000';
     }
-    ctx.fill(path);
 
     const img = ctx.getImageData(0, 0, Wd, Ht);
     for (let i = 0; i < img.data.length; i += 4) {

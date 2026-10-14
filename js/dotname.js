@@ -41,6 +41,16 @@ Y:["#   #","#   #"," # # ","  #  ","  #  ","  #  ","  #  "], Z:["#####","    #",
 
   /* 이름 그리기
      opt: { cell: 칸 크기 px, color, shape: 'oko' | 'circle' | 'rhomb', ghost: 바탕 칸 색(없으면 생략) } */
+  /* 정수 칸(X, Y, 가로 w, 세로 h) 안의 동그라미 점. 3~5칸은 모서리를 깎아 원처럼, 그보다 크면 진짜 원 (틈 조금) */
+  FG.roundPx = function (p, X, Y, w, h) {
+    // 점 사이에 1도트 틈을 두어 하나하나 떨어진 점으로 보이게 (감열 프린터는 열 번짐으로 작은 점이 둥글게 찍힘)
+    const s = Math.min(w, h);
+    if (s <= 1) { p.rect(X, Y, 1, 1); return; }
+    if (s <= 4) { const d = s - 1; p.rect(X, Y, d, d); return; }
+    if (s === 5) { p.rect(X + 1, Y, 2, 4); p.rect(X, Y + 1, 4, 2); return; }
+    const r = s * 0.42; p.moveTo(X + w / 2 + r, Y + h / 2); p.arc(X + w / 2, Y + h / 2, r, 0, Math.PI * 2);
+  };
+
   FG.drawDotText = function (ctx, text, x, y, opt) {
     const cs = opt.cell;
     const shape = opt.shape || 'oko';
@@ -61,6 +71,21 @@ Y:["#   #","#   #"," # # ","  #  ","  #  ","  #  ","  #  "], Z:["#####","    #",
         }
       });
       if (opt.ghost) { ctx.fillStyle = opt.ghost; ctx.fill(ghost); }
+      ctx.fillStyle = opt.color; ctx.fill(lit);
+      return;
+    }
+    if (shape === 'round') {
+      // 감열 프린터용 동그라미 픽셀: 정수 칸 안에 꽉 찬 원 (작은 칸은 모서리를 깎은 십자 원)
+      const gx = (i) => Math.round(x + i * cs), gy = (j) => Math.round(y + j * cs);
+      chars.forEach((ch, n) => {
+        const px = PX5[ch];
+        for (let j = 0; j < GH - 1; j++) for (let i = 0; i < GW; i++) {
+          if (n === chars.length - 1 && i === GW - 1) continue;
+          if (!(px && i < 5 && px[j][i] === '#')) continue;
+          const c = n * GW + i;
+          FG.roundPx(lit, gx(c), gy(j), gx(c + 1) - gx(c), gy(j + 1) - gy(j));
+        }
+      });
       ctx.fillStyle = opt.color; ctx.fill(lit);
       return;
     }
