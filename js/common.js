@@ -772,44 +772,43 @@
       for (let i = 0; i < data.length; i++) data[i] = bits[i] ? 0 : (bg && bg[i] ? 0 : 13);
       tone = { cols, rows, data };
     }
-    // 화면에 보인 영역 그대로 (자르지 않음): 위 화면의 픽셀 얼굴과 같은 구도
-    const c0 = 0, c1 = tone.cols, r0 = 0, r1 = tone.rows;
-    const cell = cw / (c1 - c0), faceH = Math.round((r1 - r0) * cell);
+    // 디자인 원본(1200 × 2423) 비율 그대로: 모든 위치를 원본 좌표 × q 로 잡음
+    const q = Wd / 1200, Q = (v) => Math.round(v * q);
+    const Ht = Q(2423);
+    const faceTop = Q(1449), faceH = Q(2361) - faceTop;
+    // 얼굴 칸: 가로를 꽉 채우고, 세로는 머리 꼭대기부터 상자 높이만큼 (원본처럼 얼굴을 크게)
+    const cell = cw / tone.cols;
+    const nRows = Math.min(tone.rows, Math.max(1, Math.floor(faceH / cell)));
+    let firstInk = 0;
+    for (let r = 0; r < tone.rows; r++) { let n = 0; for (let c = 0; c < tone.cols; c++) if (tone.data[r * tone.cols + c] >= 4) n++; if (n >= 3) { firstInk = r; break; } }
+    const c0 = 0, c1 = tone.cols, r0 = Math.max(0, Math.min(tone.rows - nRows, firstInk - 1)), r1 = r0 + nRows;
 
     const lines = [String(s.subtitle || '').split(/\n/)[0], s.title || '', '# ' + FG.pad(entry.no, 2)]
       .map((t) => FG.cleanName(t).trim()).filter(Boolean);
     const hc = Math.max(2, Math.floor(Math.min(3 * k, ...lines.map((t) => (cw * 0.8) / Math.max(1, FG.dotCols(t))))));
-    const hGap = R(16);
     const thanks = FG.cleanName(String(s.thanksEn || '').replace(/[.!]\s*$/, ',')).trim();
     const tc = Math.max(2, Math.floor(Math.min(3 * k, cw / FG.dotCols('THANK YOU FOR TAKING THE TIME'))));
     const tLines = thanks ? wrapWords(thanks, Math.max(8, Math.floor((cw / tc + 1) / 6))) : [];
     const name = FG.cleanName(entry.name || '', 16).trim() || 'GUEST';
-    const NL = FG.nameLines(name, cw, R(120), R(9));
-    const nameH = NL.lines.length * FG.DOT_ROWS * NL.cell + (NL.lines.length - 1) * NL.cell * 2;
-    const rh = Math.max(2, R(3));
-
-    const top = R(36), blank = R(350), logoH = R(101);
-    const headH = Math.max(lines.length * hc * 7 + (lines.length - 1) * hGap, logoH);
-    const thanksH = tLines.length * tc * 7 + Math.max(0, tLines.length - 1) * R(10);
-    const Ht = top + rh + R(20) + headH + blank + thanksH + R(40) + nameH + R(46) + faceH + R(32);
+    const NL = FG.nameLines(name, cw, Q(160), Math.max(2, Math.floor(Q(160) / 7)));
+    const rh = Math.max(2, Q(7));
 
     const cv = document.createElement('canvas'); cv.width = Wd; cv.height = Ht;
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, Wd, Ht);
     ctx.fillStyle = '#000';
 
-    let y = top;
-    const step = Math.max(4, R(5));
-    for (let x = m; x + rh <= m + cw; x += step) ctx.fillRect(x, y, rh, rh);          // 맨 위 점선
-    y += rh + R(20);
-    const yHead = y, glyph = 'pixel';   // 모든 글자는 카 에스페란토 보행자 픽셀 글꼴 (PX5, 정수 칸)
-    lines.forEach((t, i) => { if (i) y += hGap; FG.drawDotText(ctx, t, m, y, { cell: hc, color: '#000', shape: glyph }); y += hc * 7; });
-    FG.drawLogo(ctx, m + cw, yHead, logoH, Math.max(1, Math.round(k)));        // 오른쪽 위 로고 (오른쪽 끝을 여백에 맞춤)
-    y = yHead + headH + blank;
-    tLines.forEach((t, i) => { if (i) y += R(10); FG.drawDotText(ctx, t, m, y, { cell: tc, color: '#000', shape: glyph }); y += tc * 7; });
-    if (tLines.length) y += R(40);
-    NL.lines.forEach((t, i) => { if (i) y += NL.cell * 2; FG.drawDotText(ctx, t, m, y, { cell: NL.cell, color: '#000', shape: glyph }); y += FG.DOT_ROWS * NL.cell; });
-    y += R(46);
+    const step = Math.max(4, Q(10));
+    for (let x = m; x + rh <= m + cw; x += step) ctx.fillRect(x, Q(81), rh, rh);          // 맨 위 점선
+    const glyph = 'pixel';   // 모든 글자는 카 에스페란토 보행자 픽셀 글꼴 (PX5, 정수 칸)
+    const pitch = Q(89);     // 원본의 줄 간격 (윗줄 시작 → 다음 줄 시작)
+    lines.forEach((t, i) => FG.drawDotText(ctx, t, m, Q(118) + i * pitch, { cell: hc, color: '#000', shape: glyph }));
+    FG.drawLogo(ctx, m + cw, Q(118), Q(232), Math.max(1, Math.round(k)));        // 오른쪽 위 로고
+    const tPitch = Math.max(tc * 7 + Q(10), Q(58));
+    tLines.forEach((t, i) => FG.drawDotText(ctx, t, m, Q(1050) + i * tPitch, { cell: tc, color: '#000', shape: glyph }));
+    let y = Q(1220) + Math.round((Q(160) - NL.height) / 2);
+    NL.lines.forEach((t) => { FG.drawDotText(ctx, t, m, y, { cell: NL.cell, color: '#000', shape: glyph }); y += (FG.DOT_ROWS + 2) * NL.cell; });
+    y = faceTop + Math.round((faceH - nRows * cell) / 2);
 
     // 망점 얼굴: 어두울수록 큰 점. 동그라미는 이웃과 붙어 덩어리가 되고, 네모는 칸을 꽉 채움
     const path = new Path2D();
