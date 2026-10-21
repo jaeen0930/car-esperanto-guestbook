@@ -1050,9 +1050,12 @@
   /* 전체 화면: 첫 클릭/키 입력 때 켭니다 */
   FG.enableFullscreenOnFirstInput = function () {
     const go = () => {
-      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
+      const el = document.documentElement;
+      if (document.fullscreenElement || document.webkitFullscreenElement) return;
+      try {
+        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();   // 아이패드 사파리(구버전)
+      } catch (e) { /* 전체 화면 불가 */ }
     };
     window.addEventListener('pointerdown', go, { capture: true });
     window.addEventListener('keydown', (e) => { if (e.key === 'f' || e.key === 'F') go(); }, { capture: true });
