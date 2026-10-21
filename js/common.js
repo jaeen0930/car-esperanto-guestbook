@@ -780,14 +780,11 @@
 
     // 디자인 원본(1200 × 2423) 비율 그대로: 모든 위치를 원본 좌표 × q 로 잡음
     const q = Wd / 1200, Q = (v) => Math.round(v * q);
-    const Ht = Q(2423);
-    const faceTop = Q(1449), faceH = Q(2361) - faceTop;
-    // 얼굴 상자: 가로를 꽉 채우고, 세로는 머리 꼭대기부터 상자 높이만큼 (디자인처럼 얼굴을 크게)
+    // 얼굴 상자: 가로를 꽉 채우고, 세로는 얼굴 전체(모든 줄)가 다 들어가도록 종이를 늘림 (10-21, 잘리지 않게)
     const cell = cw / cols;
-    const nRows = Math.min(rows, Math.max(1, Math.floor(faceH / cell)));
-    let firstInk = 0;
-    for (let r = 0; r < rows; r++) { let n = 0; for (let c = 0; c < cols; c++) if (dark(r, c)) n++; if (n >= 2) { firstInk = r; break; } }
-    const r0 = Math.max(0, Math.min(rows - nRows, firstInk - 1)), r1 = r0 + nRows;
+    const nRows = rows, r0 = 0, r1 = rows;
+    const faceTop = Q(1449), faceH = Math.round(nRows * cell);
+    const Ht = faceTop + faceH + Q(62);
 
     const lines = [String(s.subtitle || '').split(/\n/)[0], s.title || '', '# ' + FG.pad(entry.no, 2)]
       .map((t) => FG.cleanName(t).trim()).filter(Boolean);
