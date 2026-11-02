@@ -59,7 +59,7 @@ Y:["#   #","#   #"," # # ","  #  ","  #  ","  #  ","  #  "], Z:["#####","    #",
     if (shape === 'pixel') {
       // 칸 경계를 정수 픽셀에 맞추고(줄마다 굵기가 들쭉날쭉하지 않게), 작은 글자는 꽉 찬 네모, 큰 글자는 가는 틈
       const gx = (i) => Math.round(x + i * cs), gy = (j) => Math.round(y + j * cs);
-      const gap = cs >= 8 ? Math.max(1, Math.round(cs * 0.08)) : 0;
+      const gap = opt.gap != null ? opt.gap : (cs >= 8 ? Math.max(1, Math.round(cs * 0.08)) : 0);
       chars.forEach((ch, n) => {
         const px = PX5[ch];
         for (let j = 0; j < GH - 1; j++) for (let i = 0; i < GW; i++) {

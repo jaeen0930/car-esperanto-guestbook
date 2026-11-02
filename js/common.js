@@ -539,10 +539,22 @@
     return { cols, rows, data: out };
   };
   /* 배경 칸 표시와 명암 격자를 bg 한 칸에 함께 저장: "0101…|t36x48:0f3a…" (DB 구조는 그대로) */
-  FG.packBg = function (maskStr, tone) {
+  FG.packBg = function (maskStr, tone, extra) {
     let out = maskStr || '';
     if (tone) out += '|t' + tone.cols + 'x' + tone.rows + ':' + Array.prototype.map.call(tone.data, (v) => v.toString(16)).join('');
+    // 방문자가 고른 점 모양(s:)과 남긴 글(m:)도 같은 칸에 (DB 구조는 그대로)
+    if (extra && extra.shape) out += '|s:' + (extra.shape === 'dot' ? 'dot' : 'square');
+    if (extra && extra.message) out += '|m:' + encodeURIComponent(String(extra.message).slice(0, 400));
     return out || undefined;
+  };
+  FG.msgOf = function (entry) {
+    if (entry.message != null) return entry.message;
+    const m = typeof entry.bg === 'string' && entry.bg.match(/\|m:([^|]*)/);
+    try { return m ? decodeURIComponent(m[1]) : ''; } catch (e) { return ''; }
+  };
+  FG.shapeOf = function (entry, s) {
+    const m = typeof entry.bg === 'string' && entry.bg.match(/\|s:(dot|square)/);
+    return m ? m[1] : (s && s.shape) || 'square';
   };
   FG.toneOf = function (entry) {
     if (entry.tone && entry.tone.data) return entry.tone;
@@ -734,8 +746,8 @@
     return out;
   }
 
-  FG.renderReceipt = function (entry, s) {
-    return FG.renderReceiptTall(entry, s, s.shape === 'dot' ? 'dots' : 'squares');
+  FG.renderReceipt = function (entry, s, side) {
+    return FG.renderReceiptTall(entry, s, FG.shapeOf(entry, s) === 'dot' ? 'dots' : 'squares', side);
   };
 
   /* CAR ESPERANTO 로고 (윤곽 사각형 13개, 원본 좌표 · 오른쪽 위 기준으로 그림) */
@@ -766,7 +778,8 @@
 
   /* 세로 영수증 (2026.10 디자인)
      위: 점선 · 전시명 · 번호 · 오른쪽 위 윤곽 표식 / 가운데 여백 / 인사 · 이름 / 아래: 망점 얼굴 (동그라미 또는 네모) */
-  FG.renderReceiptTall = function (entry, s, style) {
+  FG.renderReceiptTall = function (entry, s, style, side) {
+    const back = side === 'back';
     const spec = FG.receiptSpec(s.paper);
     const Wd = spec.dots, k = Wd / 576;
     const R = (v) => Math.round(v * k);
@@ -808,12 +821,38 @@
     // 모든 글자는 카 에스페란토 보행자 픽셀 글꼴 (PX5, 정수 칸). 네모 버전 = 네모 픽셀, 동그라미 버전 = 동그라미 픽셀
     const glyph = round ? 'round' : 'pixel';
     const pitch = Q(89);     // 원본의 줄 간격 (윗줄 시작 → 다음 줄 시작)
-    lines.forEach((t, i) => FG.drawDotText(ctx, t, m, Q(118) + i * pitch, { cell: hc, color: '#000', shape: glyph }));
-    FG.drawLogo(ctx, m + cw, Q(118), Q(232), Math.max(1, Math.round(k)), round);        // 오른쪽 위 로고
-    const tPitch = Math.max(tc * 7 + Q(10), Q(58));
-    tLines.forEach((t, i) => FG.drawDotText(ctx, t, m, Q(1050) + i * tPitch, { cell: tc, color: '#000', shape: glyph }));
-    let y = Q(1220) + Math.round((Q(160) - NL.height) / 2);
-    NL.lines.forEach((t) => { FG.drawDotText(ctx, t, m, y, { cell: NL.cell, color: '#000', shape: glyph }); y += (FG.DOT_ROWS + 2) * NL.cell; });
+    if (!back) {
+      lines.forEach((t, i) => FG.drawDotText(ctx, t, m, Q(118) + i * pitch, { cell: hc, color: '#000', shape: glyph }));
+      FG.drawLogo(ctx, m + cw, Q(118), Q(232), Math.max(1, Math.round(k)), round);        // 오른쪽 위 로고
+      const tPitch = Math.max(tc * 7 + Q(10), Q(58));
+      tLines.forEach((t, i) => FG.drawDotText(ctx, t, m, Q(1050) + i * tPitch, { cell: tc, color: '#000', shape: glyph }));
+      let y = Q(1220) + Math.round((Q(160) - NL.height) / 2);
+      NL.lines.forEach((t) => { FG.drawDotText(ctx, t, m, y, { cell: NL.cell, color: '#000', shape: glyph }); y += (FG.DOT_ROWS + 2) * NL.cell; });
+    } else {
+      // 뒷면 (게스트북 디자인 Back): 왼쪽 위 로고 · 가운데 남긴 글 · 아래 얼굴
+      const lh = Q(232), lw = lh * 479 / 1065;
+      FG.drawLogo(ctx, m + Math.round(lw), Q(118), lh, Math.max(1, Math.round(k)), round);
+      const msg = String(FG.msgOf(entry) || '').trim();
+      if (msg) {
+        const fs = Q(54), lead = Q(86), maxW = Q(780);
+        ctx.font = '500 ' + fs + 'px "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const out = [];
+        msg.split(/\n/).forEach((para) => {
+          let line = '';
+          Array.from(para).forEach((ch) => {
+            const t = line + ch;
+            if (ctx.measureText(t).width > maxW && line) { const sp = line.lastIndexOf(' '); if (sp > 0 && ch !== ' ') { out.push(line.slice(0, sp)); line = line.slice(sp + 1) + ch; } else { out.push(line); line = ch === ' ' ? '' : ch; } }
+            else line = t;
+          });
+          out.push(line);
+        });
+        const shown = out.slice(0, 9);
+        const cy = Q(880);
+        shown.forEach((t, i) => ctx.fillText(t.trim(), Wd / 2, Math.round(cy + (i - (shown.length - 1) / 2) * lead)));
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      }
+    }
 
     // 픽셀 얼굴: 칸 경계를 정수 픽셀에 맞춤
     const fy = faceTop + Math.round((faceH - nRows * cell) / 2);

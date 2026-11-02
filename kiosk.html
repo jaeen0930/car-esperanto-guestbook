@@ -7,89 +7,89 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="게스트북">
-<meta name="theme-color" content="#0b0b0b">
+<meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <title>게스트북 · 키오스크</title>
-<link rel="stylesheet" href="css/base.css?v=1791967075">
-<link rel="stylesheet" href="css/kiosk.css?v=1791967075">
+<link rel="stylesheet" href="css/base.css?v=1793649565">
+<link rel="stylesheet" href="css/kiosk.css?v=1793649565">
 </head>
-<body data-screen="both" data-state="boot">
-<div id="app">
-  <section id="top" aria-label="위 화면">
-    <canvas id="pix"></canvas>
-    <div id="flash"></div>
-    <canvas id="debug" hidden></canvas>
-  </section>
+<body data-state="boot">
+<!-- 피그마 "Guest book design · Section 1 · kiosk ui" 를 1024 × 1366 (iPad Pro 12.9) 좌표 그대로 옮김 -->
+<div id="stage">
+  <canvas id="faces" aria-hidden="true"></canvas>
+  <canvas id="pix" aria-label="픽셀 얼굴"></canvas>
+  <div id="dim"></div>
+  <div id="flash"></div>
+  <i class="svg" id="digit" aria-live="polite"></i>
+  <i class="svg ui" id="logo" aria-label="CEP"></i>
 
-  <section id="bottom" aria-label="아래 화면">
-    <!-- 대기 · 준비 · 소개 -->
-    <div class="view" id="v-idle">
-      <div class="press">
-        <button type="button" class="shoot-btn" id="shootBtn" aria-label="누르세요"><span class="dome"></span></button>
-        <div class="press-txt">
-          <div class="press-word" id="pressBox"><canvas id="pressWord"></canvas></div>
-          <b>버튼을 누르세요</b>
-        </div>
-      </div>
-      <p class="idle-hint"><span>화면을 보고 얼굴을 가운데에 맞춰 주세요</span><span class="en">Look at the screen and center your face</span></p>
+  <!-- 메인 -->
+  <div class="view" id="v-main">
+    <i class="svg" id="mainTitle" aria-label="CARESPERANTO GUEST BOOK"></i>
+    <p id="mainSub">화면을 터치해 방명록을 남겨주세요</p>
+  </div>
+
+  <!-- 도형 -->
+  <div class="view" id="v-shape">
+    <i class="svg title" id="tShape" aria-label="CHOOSE A SHAPE"></i>
+    <p class="sub" id="shapeSub">원하시는 도형을 선택해주세요</p>
+    <button type="button" class="shape sq" data-shape="square" aria-label="네모"><span></span></button>
+    <button type="button" class="shape ci" data-shape="dot" aria-label="동그라미"><span></span></button>
+  </div>
+
+  <!-- 촬영 -->
+  <div class="view" id="v-photo">
+    <i class="svg title" id="tPhoto" aria-label="TAKE A PHOTO"></i>
+    <p class="sub" id="photoSub">버튼을 눌러 촬영하세요.</p>
+    <button type="button" id="shutter" aria-label="촬영"><i class="svg"></i></button>
+    <button type="button" id="retake" aria-label="다시 찍기"><i class="svg"></i><span>RETAKE</span></button>
+  </div>
+
+  <!-- 이름 -->
+  <div class="view" id="v-name">
+    <i class="svg title" id="tName" aria-label="ENTER YOUR NAME"></i>
+    <p class="sub" id="nameSub">이름을 입력해주세요.</p>
+    <canvas id="nameCv"></canvas>
+    <div class="kbd" id="kbdName"></div>
+  </div>
+
+  <!-- 남길 말 -->
+  <div class="view" id="v-message">
+    <div id="paper">
+      <i class="svg" id="tMessage" aria-label="LEAVE A MESSAGE"></i>
+      <p id="msgSub">전시를 보고 느낀 점을 자유롭게 남겨주세요.</p>
+      <div id="msgText"></div>
     </div>
+    <div id="deco"></div>
+    <div class="kbd big" id="kbdMsg"></div>
+  </div>
 
-    <!-- 카운트다운 -->
-    <div class="view" id="v-count">
-      <div class="count-num" id="countBox"><canvas id="countNum"></canvas></div>
-      <div class="count-cap"><span id="countKo">가만히 있어요</span><span id="countEn">Hold still</span></div>
-    </div>
+  <!-- 감사 · 출력 -->
+  <div class="view" id="v-thanks">
+    <canvas id="thanksName"></canvas>
+    <p class="sub" id="thanksSub"><span data-bind="thanks"></span><br><span data-bind="thanksEn"></span></p>
+    <button type="button" class="svg-btn" id="printBtn" aria-label="PRINT"><i class="svg"></i></button>
+    <button type="button" class="svg-btn" id="gbBtn" aria-label="GUEST BOOK"><i class="svg"></i></button>
+  </div>
 
-    <!-- 촬영 -->
-    <div class="view" id="v-shoot">
-    </div>
+  <!-- 준비 중 -->
+  <div class="view" id="v-error">
+    <p class="sub" id="errTitle">잠시 준비 중이에요</p>
+    <p class="mono" id="errMsg"></p>
+  </div>
 
-    <!-- 이름 -->
-    <div class="view" id="v-name">
-      <div class="name-left">
-        <div class="eyebrow"><span>YOUR NAME</span><i></i><span>이름을 적어 주세요</span></div>
-        <div class="name-pv" id="namePvBox"><canvas id="namePv"></canvas></div>
-        <p class="name-hint"><span>영문으로 적어 주세요</span><i></i><span>다 적으면 버튼</span></p>
-      </div>
-      <div class="kbd" id="kbd"></div>
-    </div>
-
-    <!-- 완료 -->
-    <div class="view" id="v-done">
-      <div class="done-left">
-        <div class="done-name" id="doneNameBox"><canvas id="doneName"></canvas></div>
-        <h1 class="done-ko" data-bind="thanks"></h1>
-        <p class="done-en" data-bind="thanksEn"></p>
-      </div>
-      <div class="done-right">
-        <div class="arrow" id="doneArrow" aria-hidden="true">
-          <svg viewBox="0 0 13 9" shape-rendering="crispEdges"><rect x="8" y="0" width="0.9" height="0.9"/><rect x="8" y="1" width="0.9" height="0.9"/><rect x="9" y="1" width="0.9" height="0.9"/><rect x="8" y="2" width="0.9" height="0.9"/><rect x="9" y="2" width="0.9" height="0.9"/><rect x="10" y="2" width="0.9" height="0.9"/><rect x="0" y="3" width="0.9" height="0.9"/><rect x="1" y="3" width="0.9" height="0.9"/><rect x="2" y="3" width="0.9" height="0.9"/><rect x="3" y="3" width="0.9" height="0.9"/><rect x="4" y="3" width="0.9" height="0.9"/><rect x="5" y="3" width="0.9" height="0.9"/><rect x="6" y="3" width="0.9" height="0.9"/><rect x="7" y="3" width="0.9" height="0.9"/><rect x="8" y="3" width="0.9" height="0.9"/><rect x="9" y="3" width="0.9" height="0.9"/><rect x="10" y="3" width="0.9" height="0.9"/><rect x="11" y="3" width="0.9" height="0.9"/><rect x="0" y="4" width="0.9" height="0.9"/><rect x="1" y="4" width="0.9" height="0.9"/><rect x="2" y="4" width="0.9" height="0.9"/><rect x="3" y="4" width="0.9" height="0.9"/><rect x="4" y="4" width="0.9" height="0.9"/><rect x="5" y="4" width="0.9" height="0.9"/><rect x="6" y="4" width="0.9" height="0.9"/><rect x="7" y="4" width="0.9" height="0.9"/><rect x="8" y="4" width="0.9" height="0.9"/><rect x="9" y="4" width="0.9" height="0.9"/><rect x="10" y="4" width="0.9" height="0.9"/><rect x="11" y="4" width="0.9" height="0.9"/><rect x="12" y="4" width="0.9" height="0.9"/><rect x="0" y="5" width="0.9" height="0.9"/><rect x="1" y="5" width="0.9" height="0.9"/><rect x="2" y="5" width="0.9" height="0.9"/><rect x="3" y="5" width="0.9" height="0.9"/><rect x="4" y="5" width="0.9" height="0.9"/><rect x="5" y="5" width="0.9" height="0.9"/><rect x="6" y="5" width="0.9" height="0.9"/><rect x="7" y="5" width="0.9" height="0.9"/><rect x="8" y="5" width="0.9" height="0.9"/><rect x="9" y="5" width="0.9" height="0.9"/><rect x="10" y="5" width="0.9" height="0.9"/><rect x="11" y="5" width="0.9" height="0.9"/><rect x="8" y="6" width="0.9" height="0.9"/><rect x="9" y="6" width="0.9" height="0.9"/><rect x="10" y="6" width="0.9" height="0.9"/><rect x="8" y="7" width="0.9" height="0.9"/><rect x="9" y="7" width="0.9" height="0.9"/><rect x="8" y="8" width="0.9" height="0.9"/></svg>
-        </div>
-      </div>
-      <div class="done-no" id="doneNoBox"><canvas id="doneNo"></canvas></div>
-    </div>
-
-    <!-- 오류 -->
-    <div class="view" id="v-error">
-      <div class="intro">
-        <div class="eyebrow"><span data-bind="title"></span><i></i><span data-bind="label"></span></div>
-        <h1 class="hello">잠시 준비 중이에요</h1>
-        <p class="hello-en">Getting ready. Please wait a moment.</p>
-        <p class="err mono" id="errMsg"></p>
-      </div>
-    </div>
-
-    <div id="toast" role="status"></div>
-  </section>
+  <button type="button" class="svg-btn" id="nextBtn" aria-label="NEXT"><i class="svg"></i></button>
+  <div id="toast" role="status"></div>
 </div>
 <video id="cam" playsinline muted></video>
 
 <script src="vendor/face-api.js"></script>
 <script src="vendor/selfie/selfie_segmentation.js"></script>
 <script src="config.js"></script>
-<script src="js/common.js?v=1791967075"></script>
-<script src="js/dotname.js?v=1791967075"></script>
-<script src="js/kiosk.js?v=1791967075"></script>
+<script src="js/common.js?v=1793649565"></script>
+<script src="js/dotname.js?v=1793649565"></script>
+<script src="js/hangul.js?v=1793649565"></script>
+<script src="js/kiosk.js?v=1793649565"></script>
 </body>
 </html>

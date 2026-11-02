@@ -1,0 +1,45 @@
+/* 게스트북 화면 · 피그마 Guest book design (guest book ui) 그대로 · 1024 × 1366 기준 */
+html, body { background: #000; }
+#stage { position: fixed; left: 50%; top: 50%; width: 1024px; height: 1366px; transform-origin: 0 0; background: #000; overflow: hidden; color: #fff; }
+.svg { display: block; position: absolute; background: currentColor; -webkit-mask: var(--m) no-repeat 0 0 / 100% 100%; mask: var(--m) no-repeat 0 0 / 100% 100%; font-style: normal; }
+button:focus { outline: none; }
+button { appearance: none; -webkit-appearance: none; border: 0; padding: 0; margin: 0; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+#logo { --m: url(../assets/ui/logo-cep.svg); left: 58.98px; top: 74.3px; width: 176.6px; height: 72.8px; color: #fff; cursor: pointer; }
+.hd { position: absolute; top: 305.2px; margin: 0; font: 400 22px/43px var(--sans); letter-spacing: -0.594px; white-space: nowrap; }
+#hGuest { left: 56.98px; font-weight: 500; }
+#hVisitors { left: 425.75px; }
+#hCount { left: 609.54px; color: #fefefe; font-variant-numeric: tabular-nums; }
+
+#grid { position: absolute; left: 55.78px; top: 348.2px; width: 912.43px; height: 969.6px; background: #000; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+#grid::-webkit-scrollbar { display: none; }
+#gridIn { position: relative; background: #161616; }
+.gcard { position: absolute; width: 171px; height: 228px; cursor: pointer; }
+.gcard canvas { position: absolute; inset: 0; width: 171px; height: 228px; display: block; }
+.gcard .msg { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.84); opacity: 0; transition: opacity 220ms ease; display: flex; justify-content: center; padding-top: 76px; }
+.gcard .msg p { margin: 0; width: 119px; text-align: center; font: 500 15px/22px var(--sans); letter-spacing: -0.405px; color: #fff; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; max-height: 88px; overflow: hidden; }
+.gcard.show .msg { opacity: 1; }
+@media (hover: hover) { .gcard.has-msg:hover .msg { opacity: 1; } }
+.gcard.fresh canvas { animation: fresh 1.6s ease-out; }
+@keyframes fresh { 0% { filter: brightness(2.2); } 100% { filter: none; } }
+
+#detail { position: absolute; inset: 0; z-index: 10; }
+#detail[hidden] { display: none; }
+#dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.81); }
+#card { position: absolute; left: 277.66px; top: 232.46px; width: 468.67px; height: 946.32px; background: #fff; display: grid; place-items: center; cursor: pointer; overflow: hidden; perspective: 1400px; }
+#cardImg { display: block; max-width: 100%; max-height: 100%; image-rendering: pixelated; transition: transform 260ms ease, opacity 260ms ease; }
+#card.flip #cardImg { transform: rotateY(90deg); opacity: .2; }
+.pill { position: absolute; top: 62.26px; padding: 6px 20px; border: 1px solid #fff; border-radius: 24px; font: 400 22px/35px var(--sans); letter-spacing: -0.594px; color: #fff; white-space: nowrap; }
+#reprint { left: 693.35px; }
+#delete { left: 845.65px; border-color: #ff0005; color: #ff0005; }
+#delete.arm { background: #ff0005; color: #fff; }
+#reprint:disabled { opacity: .45; }
+.arrow { position: absolute; top: 688.77px; width: 21.33px; height: 33.71px; color: #fff; }
+.arrow::before { content: ''; position: absolute; inset: -26px -30px; }
+.arrow .svg { inset: 0; width: 100%; height: 100%; }
+#prev { left: 133.45px; } #prev .svg { --m: url(../assets/ui/chevron-left.svg); }
+#next { left: 849.66px; } #next .svg { --m: url(../assets/ui/chevron-right.svg); }
+#caption { position: absolute; left: 0; right: 0; top: 1230.51px; margin: 0; text-align: center; font: 500 24px/43px var(--sans); letter-spacing: -0.648px; white-space: pre; }
+
+#toast { position: absolute; left: 50%; bottom: 80px; transform: translate(-50%, 8px); padding: 12px 22px; background: #f2f1ec; color: #000; border-radius: 999px; font: 500 18px/1.3 var(--sans); opacity: 0; transition: opacity 200ms, transform 200ms; pointer-events: none; z-index: 20; white-space: nowrap; }
+#toast.on { opacity: 1; transform: translate(-50%, 0); }
