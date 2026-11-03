@@ -66,7 +66,7 @@
   }
   function resetSession() {
     sess.shape = null; sess.bits = null; sess.bgMask = null; sess.tone = null; sess.name = ''; sess.entry = null;
-    sess.ime = FG.Hangul(300); sess.msgMode = 'en';
+    sess.ime = FG.Hangul(300); sess.msgMode = 'en'; sess.shift = 0;
     frozen = null; pxr.reset();
     document.body.classList.remove('can-next');
     $('printBtn').classList.remove('busy');
@@ -126,10 +126,10 @@
 
   /* ───────── 메인: 다녀간 얼굴 타일 (피그마 프레임 5 자리 그대로) ───────── */
   const TILES = [
-    [0, 957, 105.7, 98.8], [414.04, 957, 106.07, 98.06], [724.29, 957, 106.07, 98.06],
-    [105.68, 1060.49, 97.6, 90.24], [520.63, 1060.49, 97.6, 90.24], [625.09, 1060.49, 97.6, 90.24], [928.82, 1059.35, 95.18, 90.56],
-    [209.45, 1161.26, 96.67, 90.89], [312.67, 1160.37, 99.26, 92.06],
-    [626.69, 1275.18, 97.6, 90.24],
+    [0, 859.1, 105.7, 98.8], [414.04, 859.1, 106.07, 98.06], [724.29, 859.1, 106.07, 98.06],
+    [105.68, 962.49, 97.6, 90.24], [520.63, 962.49, 97.6, 90.24], [625.09, 962.49, 97.6, 90.24], [928.82, 961.35, 95.18, 90.56],
+    [209.45, 1063.26, 96.67, 90.89], [312.67, 1064.37, 99.26, 92.06],
+    [626.69, 1177.18, 97.6, 90.24], [105.68, 1267.42, 97.6, 90.24],
   ];
   let tileSet = [], tileT = 0;
   function drawFaces(force) {
@@ -234,44 +234,48 @@
     }));
     html += `<button type="button" class="lang" data-k="LANG" style="left:23.2px;top:93.2px" aria-label="한/영"></button>`;
     html += `<button type="button" class="wide" data-k="BACK" style="left:374.84px;top:93.24px" aria-label="지우기">←</button>`;
+    html += `<button type="button" class="wide shift" data-k="SHIFT" style="left:23.2px;top:140.17px" aria-label="쌍자음 · 대문자">⇧</button>`;
     html += `<button type="button" class="space" data-k="SPACE" style="left:134.75px;top:140.17px" aria-label="띄어쓰기"></button>`;
     kb.innerHTML = html;
-    let holdT = null, held = false;
     kb.addEventListener('pointerdown', (e) => {
       const b = e.target.closest('button'); if (!b) return;
-      e.preventDefault(); b.classList.add('down');
-      held = false;
-      clearTimeout(holdT);
-      const k = b.dataset.k;
-      if (k === 'BACK' || k === 'SPACE' || k === 'LANG') { msgKey(k); return; }
-      // 길게 누르면 된소리 · ㅒ ㅖ (영문은 소문자)
-      holdT = setTimeout(() => { held = true; msgKey(k, true); b.classList.remove('down'); }, 420);
+      e.preventDefault(); flashKey(b); msgKey(b.dataset.k);
     });
-    const up = (e) => {
-      const b = e.target.closest && e.target.closest('button');
-      kb.querySelectorAll('.down').forEach((x) => x.classList.remove('down'));
-      if (!b || held) { clearTimeout(holdT); return; }
-      const k = b.dataset.k;
-      if (holdT && k && k.length === 1) { clearTimeout(holdT); holdT = null; msgKey(k, false); }
-    };
-    kb.addEventListener('pointerup', up);
-    kb.addEventListener('pointercancel', () => { clearTimeout(holdT); kb.querySelectorAll('.down').forEach((x) => x.classList.remove('down')); });
   }
+  /* ⇧: 한 번 = 다음 한 글자만 (ㄲ ㄸ ㅃ ㅆ ㅉ ㅒ ㅖ · 영문 대문자), 빠르게 두 번 = 계속 (다시 누르면 풀림) */
+  let shiftT = 0;
   function renderKeys() {
+    const sh = sess.shift > 0;
     $('kbdMsg').querySelectorAll('button[data-k]').forEach((b) => {
       const k = b.dataset.k;
-      if (k.length === 1) { b.textContent = sess.msgMode === 'ko' ? FG.HANGUL_KEYS[k] : k; b.classList.toggle('ko', sess.msgMode === 'ko'); }
+      if (k.length === 1) {
+        if (sess.msgMode === 'ko') { const j = FG.HANGUL_KEYS[k]; b.textContent = sh && FG.HANGUL_SHIFT[j] ? FG.HANGUL_SHIFT[j] : j; }
+        else b.textContent = sh ? k : k.toLowerCase();
+        b.classList.toggle('ko', sess.msgMode === 'ko');
+      }
       if (k === 'LANG') b.textContent = sess.msgMode === 'ko' ? '한' : 'EN';
+      if (k === 'SHIFT') { b.classList.toggle('on', sess.shift === 1); b.classList.toggle('lock', sess.shift === 2); }
     });
   }
-  function msgKey(k, shift) {
+  function msgKey(k) {
     const ime = sess.ime;
-    if (k === 'LANG') { ime.commit(); sess.msgMode = sess.msgMode === 'ko' ? 'en' : 'ko'; renderKeys(); }
+    if (k === 'LANG') { ime.commit(); sess.msgMode = sess.msgMode === 'ko' ? 'en' : 'ko'; sess.shift = 0; }
+    else if (k === 'SHIFT') {
+      const now = performance.now();
+      if (sess.shift === 1 && now - shiftT < 400) sess.shift = 2;
+      else sess.shift = sess.shift ? 0 : 1;
+      shiftT = now;
+    }
     else if (k === 'BACK') ime.back();
     else if (k === 'SPACE') ime.key(' ');
-    else if (sess.msgMode === 'ko') { let j = FG.HANGUL_KEYS[k]; if (shift && FG.HANGUL_SHIFT[j]) j = FG.HANGUL_SHIFT[j]; ime.key(j); }
-    else ime.key(shift ? k.toLowerCase() : k);
+    else {
+      const sh = sess.shift > 0;
+      if (sess.msgMode === 'ko') { let j = FG.HANGUL_KEYS[k]; if (sh && FG.HANGUL_SHIFT[j]) j = FG.HANGUL_SHIFT[j]; ime.key(j); }
+      else ime.key(sh ? k : k.toLowerCase());
+      if (sess.shift === 1) sess.shift = 0;
+    }
     audio.key();
+    renderKeys();
     renderMsg();
   }
   function renderMsg() {

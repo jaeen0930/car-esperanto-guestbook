@@ -62,8 +62,8 @@
     cards.forEach((el, no) => { if (!keep.has(no)) { el.remove(); cards.delete(no); } });
     entries.forEach((e, i) => {
       const el = cardEl(e);
-      el.style.left = (X0 + (i % 5) * PX) + 'px';
-      el.style.top = (Y0 + Math.floor(i / 5) * PY) + 'px';
+      el.style.left = Math.round(X0 + (i % 5) * PX) + 'px';
+      el.style.top = Math.round(Y0 + Math.floor(i / 5) * PY) + 'px';
       if (el.parentNode !== inner) inner.appendChild(el);
       if (redraw) el._drawn = 0;
       drawCard(el, e);
