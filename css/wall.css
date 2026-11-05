@@ -18,6 +18,7 @@ button { appearance: none; -webkit-appearance: none; border: 0; padding: 0; marg
 .gcard canvas { position: absolute; inset: 0; width: 171px; height: 228px; display: block; }
 .gcard .msg { position: absolute; inset: -2px; will-change: opacity; background: rgba(0, 0, 0, 0.84); opacity: 0; transition: opacity 220ms ease; display: flex; justify-content: center; padding-top: 78px; }
 .gcard .msg p { margin: 0; width: 119px; text-align: center; font: 500 15px/22px var(--sans); letter-spacing: -0.405px; color: #fff; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; max-height: 88px; overflow: hidden; }
+.gcard .msg .msgdraw { position: absolute; inset: 0; width: 100%; height: 100%; }
 .gcard.show .msg { opacity: 1; }
 @media (hover: hover) { .gcard.has-msg:hover .msg { opacity: 1; } }
 .gcard.fresh canvas { animation: fresh 1.6s ease-out; }

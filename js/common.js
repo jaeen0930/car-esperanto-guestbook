@@ -545,12 +545,52 @@
     // 방문자가 고른 점 모양(s:)과 남긴 글(m:)도 같은 칸에 (DB 구조는 그대로)
     if (extra && extra.shape) out += '|s:' + (extra.shape === 'dot' ? 'dot' : 'square');
     if (extra && extra.message) out += '|m:' + encodeURIComponent(String(extra.message).slice(0, 400));
+    // 터치로 그린 그림/글씨: 1비트 비트맵을 런렝스+base64 로 같은 칸에 (DB 구조는 그대로)
+    if (extra && extra.draw) out += '|d:' + extra.draw;
     return out || undefined;
   };
   FG.msgOf = function (entry) {
     if (entry.message != null) return entry.message;
     const m = typeof entry.bg === 'string' && entry.bg.match(/\|m:([^|]*)/);
     try { return m ? decodeURIComponent(m[1]) : ''; } catch (e) { return ''; }
+  };
+  /* 터치 그림 저장/복원: "<w>x<h>:<base64(런렝스 varint)>" · 1 = 잉크 */
+  FG.packDraw = function (w, h, bits) {
+    const runs = []; let cur = 0, len = 0;
+    for (let i = 0; i < bits.length; i++) { const v = bits[i] ? 1 : 0; if (v === cur) len++; else { runs.push(len); cur = v; len = 1; } }
+    runs.push(len);
+    let bin = '';
+    runs.forEach((n) => { while (n >= 128) { bin += String.fromCharCode((n & 127) | 128); n >>= 7; } bin += String.fromCharCode(n); });
+    return w + 'x' + h + ':' + btoa(bin);
+  };
+  FG.drawOf = function (entry) {
+    const m = typeof entry.bg === 'string' && entry.bg.match(/\|d:(\d+)x(\d+):([^|]*)/);
+    if (!m) return null;
+    const w = +m[1], h = +m[2];
+    let bin; try { bin = atob(m[3]); } catch (e) { return null; }
+    const runs = []; let n = 0, sh = 0;
+    for (let i = 0; i < bin.length; i++) { const b = bin.charCodeAt(i); n |= (b & 127) << sh; if (b & 128) sh += 7; else { runs.push(n); n = 0; sh = 0; } }
+    const bits = new Uint8Array(w * h); let idx = 0, cur = 0;
+    runs.forEach((run) => { if (cur) for (let j = 0; j < run && idx + j < bits.length; j++) bits[idx + j] = 1; idx += run; cur ^= 1; });
+    return { w, h, bits };
+  };
+  /* 그림을 상자(x,y,w,h) 안에 비율 유지해 그려 넣기 (color 색 잉크) */
+  FG._inkCv = null;
+  FG.drawInk = function (ctx, draw, x, y, w, h, color) {
+    if (!draw || !draw.bits) return;
+    const t = FG._inkCv || (FG._inkCv = document.createElement('canvas'));
+    t.width = draw.w; t.height = draw.h;
+    const g = t.getContext('2d');
+    const img = g.createImageData(draw.w, draw.h);
+    const c = (color || '#000').replace('#', '');
+    const r = parseInt(c.slice(0, 2), 16), gg = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16);
+    for (let i = 0; i < draw.bits.length; i++) { if (draw.bits[i]) { const p = i * 4; img.data[p] = r; img.data[p + 1] = gg; img.data[p + 2] = b; img.data[p + 3] = 255; } }
+    g.putImageData(img, 0, 0);
+    const s = Math.min(w / draw.w, h / draw.h), dw = draw.w * s, dh = draw.h * s;
+    const was = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(t, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    ctx.imageSmoothingEnabled = was;
   };
   FG.shapeOf = function (entry, s) {
     const m = typeof entry.bg === 'string' && entry.bg.match(/\|s:(dot|square)/);
@@ -832,7 +872,12 @@
       // 뒷면 (게스트북 디자인 Back): 왼쪽 위 로고 · 가운데 남긴 글 · 아래 얼굴
       const lh = Q(232), lw = lh * 479 / 1065;
       FG.drawLogo(ctx, m + Math.round(lw), Q(118), lh, Math.max(1, Math.round(k)), round);
-      const msg = String(FG.msgOf(entry) || '').trim();
+      const draw = FG.drawOf(entry);
+      const msg = draw ? '' : String(FG.msgOf(entry) || '').trim();
+      if (draw) {
+        const bw = Q(880), bh = Q(1000);
+        FG.drawInk(ctx, draw, Math.round((Wd - bw) / 2), Q(430), bw, bh, '#000');
+      }
       if (msg) {
         const fs = Q(54), lead = Q(86), maxW = Q(780);
         ctx.font = '500 ' + fs + 'px "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", sans-serif';

@@ -35,11 +35,13 @@
     el = document.createElement('div');
     el.className = 'gcard';
     const cv = document.createElement('canvas');
-    const msg = FG.msgOf(e);
     el.appendChild(cv);
+    const draw = FG.drawOf(e), msg = draw ? '' : FG.msgOf(e);
     const m = document.createElement('div'); m.className = 'msg';
-    const p = document.createElement('p'); p.textContent = msg; m.appendChild(p); el.appendChild(m);
-    el.classList.toggle('has-msg', !!msg);
+    if (draw) { const dc = document.createElement('canvas'); dc.className = 'msgdraw'; m.appendChild(dc); el._draw = draw; }
+    else { const p = document.createElement('p'); p.textContent = msg; m.appendChild(p); }
+    el.appendChild(m);
+    el.classList.toggle('has-msg', !!(draw || msg));
     el.addEventListener('click', () => openDetail(entries.findIndex((x) => x.no === e.no)));
     cards.set(e.no, el);
     el._drawn = 0;
@@ -55,6 +57,10 @@
     g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
     FG.drawPortrait(g, FG.strToBits(e.bits), e.cols, e.rows, 0, 0, w, h, { grid: true, shape: FG.shapeOf(e, S) === 'dot' ? 'dot' : 'square', colors: COLORS });
     el._drawn = w;
+    if (el._draw) {
+      const dc = el.querySelector('.msgdraw');
+      if (dc) { dc.width = w; dc.height = h; FG.drawInk(dc.getContext('2d'), el._draw, w * 0.1, h * 0.1, w * 0.8, h * 0.8, '#f2f1ec'); }
+    }
   }
   function renderGrid(redraw) {
     const inner = $('gridIn');

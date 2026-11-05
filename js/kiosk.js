@@ -19,7 +19,7 @@
 
   let state = 'boot';
   let archive = [];
-  const sess = { shape: null, bits: null, bgMask: null, tone: null, name: '', ime: null, entry: null, msgMode: 'en' };
+  const sess = { shape: null, bits: null, bgMask: null, tone: null, name: '', ime: null, entry: null, msgMode: 'en', strokes: [] };
 
   /* ───────── 화면 맞추기 (1024 × 1366 무대를 창에 맞춰 늘림) ───────── */
   let scale = 1;
@@ -39,6 +39,7 @@
     backing(facesCv, W, H);
     drawFaces(true);
     if (state === 'name') drawName();
+    if (state === 'message') sizeDraw();
     if (state === 'thanks' || state === 'printed') drawThanks();
   }
 
@@ -60,13 +61,13 @@
     if (st === 'main') { resetSession(); drawFaces(true); }
     if (st === 'shape') updateShape();
     if (st === 'name') { document.body.classList.add('can-next'); drawName(); }
-    if (st === 'message') { renderKeys(); renderMsg(); }
+    if (st === 'message') sizeDraw();
     if (st === 'thanks' || st === 'printed') drawThanks();
     if (st !== 'countdown') { $('digit').classList.remove('on'); }
   }
   function resetSession() {
     sess.shape = null; sess.bits = null; sess.bgMask = null; sess.tone = null; sess.name = ''; sess.entry = null;
-    sess.ime = FG.Hangul(300); sess.msgMode = 'en'; sess.shift = 0;
+    sess.strokes = []; sess.ime = FG.Hangul(300); sess.msgMode = 'en'; sess.shift = 0;
     frozen = null; pxr.reset();
     document.body.classList.remove('can-next');
     $('printBtn').classList.remove('busy');
@@ -178,12 +179,12 @@
   const KEY_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
   function buildNameKeys() {
     const kb = $('kbdName');
-    const pos = [[2, 1], [19, 38], [55, 76]];
+    const pos = [[33, 0], [75, 54], [75, 108]], pitch = 84;
     let html = '';
     KEY_ROWS.forEach((row, r) => row.split('').forEach((c, i) => {
-      html += `<button type="button" data-k="${c}" style="left:${pos[r][0] + 35.5 * i}px;top:${pos[r][1]}px">${c}</button>`;
+      html += `<button type="button" data-k="${c}" style="left:${pos[r][0] + pitch * i}px;top:${pos[r][1]}px">${c}</button>`;
     }));
-    html += `<button type="button" class="wide" data-k="BACK" style="left:305px;top:75.9px" aria-label="지우기">←</button>`;
+    html += `<button type="button" class="wide" data-k="BACK" style="left:${75 + pitch * 7}px;top:108px" aria-label="지우기">←</button>`;
     kb.innerHTML = html;
     kb.addEventListener('pointerdown', (e) => {
       const b = e.target.closest('button'); if (!b) return;
@@ -222,75 +223,78 @@
   }
   setInterval(() => { if (state === 'name') drawName(); }, 130);
 
-  /* ───────── 남길 말 (한글 · 영문 화면 키보드) ───────── */
+  /* ───────── 남길 말 (터치로 글씨/그림) ───────── */
   const DECO = [[170.94, 205.18], [123.04, 253.15], [170.94, 157.28], [830.06, 1063.47], [878.06, 206.28], [830.16, 158.38], [222.06, 1063.47], [174.16, 1063.47], [782.16, 1063.47], [877.96, 1111.37]];
   $('deco').innerHTML = DECO.map(([x, y]) => `<i style="left:${x}px;top:${y}px"></i>`).join('');
-  function buildMsgKeys() {
-    const kb = $('kbdMsg');
-    const pos = [[2.9, 1.7], [24.9, 47.7], [68.9, 93.2]];
-    let html = '';
-    KEY_ROWS.forEach((row, r) => row.split('').forEach((c, i) => {
-      html += `<button type="button" data-k="${c}" style="left:${pos[r][0] + 43.65 * i}px;top:${pos[r][1]}px"></button>`;
-    }));
-    html += `<button type="button" class="lang" data-k="LANG" style="left:23.2px;top:93.2px" aria-label="한/영"></button>`;
-    html += `<button type="button" class="wide" data-k="BACK" style="left:374.84px;top:93.24px" aria-label="지우기">←</button>`;
-    html += `<button type="button" class="wide shift" data-k="SHIFT" style="left:23.2px;top:140.17px" aria-label="쌍자음 · 대문자">⇧</button>`;
-    html += `<button type="button" class="space" data-k="SPACE" style="left:134.75px;top:140.17px" aria-label="띄어쓰기"></button>`;
-    kb.innerHTML = html;
-    kb.addEventListener('pointerdown', (e) => {
-      const b = e.target.closest('button'); if (!b) return;
-      e.preventDefault(); flashKey(b); msgKey(b.dataset.k);
+
+  const DRAW_W = 176, DRAW_H = 228;           // 저장용 그림 해상도 (그림판 비율과 맞춤)
+  const drawCv = $('drawCv'), dctx = drawCv.getContext('2d');
+  let drawing = false, lastPt = null;
+  function drawBox() { return drawCv.getBoundingClientRect(); }   // CSS 540 × 700
+  function sizeDraw() {
+    const k = (window.devicePixelRatio || 1) * scale;
+    const w = Math.max(1, Math.round(540 * k)), h = Math.max(1, Math.round(700 * k));
+    if (drawCv.width !== w || drawCv.height !== h) { drawCv.width = w; drawCv.height = h; }
+    redrawInk();
+  }
+  function redrawInk() {
+    const k = (window.devicePixelRatio || 1) * scale;
+    dctx.setTransform(1, 0, 0, 1, 0, 0);
+    dctx.clearRect(0, 0, drawCv.width, drawCv.height);
+    dctx.setTransform(k, 0, 0, k, 0, 0);          // 좌표를 CSS 픽셀(540×700)로
+    dctx.strokeStyle = '#111'; dctx.lineCap = 'round'; dctx.lineJoin = 'round'; dctx.lineWidth = 9;
+    sess.strokes.forEach((st) => {
+      if (st.length < 2) { if (st.length === 1) { dctx.beginPath(); dctx.arc(st[0].x * 540, st[0].y * 700, 4.5, 0, 7); dctx.fillStyle = '#111'; dctx.fill(); } return; }
+      dctx.beginPath(); dctx.moveTo(st[0].x * 540, st[0].y * 700);
+      for (let i = 1; i < st.length; i++) dctx.lineTo(st[i].x * 540, st[i].y * 700);
+      dctx.stroke();
     });
   }
-  /* ⇧: 한 번 = 다음 한 글자만 (ㄲ ㄸ ㅃ ㅆ ㅉ ㅒ ㅖ · 영문 대문자), 빠르게 두 번 = 계속 (다시 누르면 풀림) */
-  let shiftT = 0;
-  function renderKeys() {
-    const sh = sess.shift > 0;
-    $('kbdMsg').querySelectorAll('button[data-k]').forEach((b) => {
-      const k = b.dataset.k;
-      if (k.length === 1) {
-        if (sess.msgMode === 'ko') { const j = FG.HANGUL_KEYS[k]; b.textContent = sh && FG.HANGUL_SHIFT[j] ? FG.HANGUL_SHIFT[j] : j; }
-        else b.textContent = sh ? k : k.toLowerCase();
-        b.classList.toggle('ko', sess.msgMode === 'ko');
-      }
-      if (k === 'LANG') b.textContent = sess.msgMode === 'ko' ? '한' : 'EN';
-      if (k === 'SHIFT') { b.classList.toggle('on', sess.shift === 1); b.classList.toggle('lock', sess.shift === 2); }
+  function ptFrom(e) { const r = drawBox(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
+  drawCv.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); drawCv.setPointerCapture(e.pointerId);
+    drawing = true; lastPt = ptFrom(e);
+    sess.strokes.push([lastPt]); redrawInk();
+  });
+  drawCv.addEventListener('pointermove', (e) => {
+    if (!drawing) return; e.preventDefault();
+    const p = ptFrom(e);
+    if (lastPt && Math.hypot(p.x - lastPt.x, p.y - lastPt.y) < 0.004) return;
+    sess.strokes[sess.strokes.length - 1].push(p); lastPt = p; redrawInk();
+  });
+  const endDraw = () => { drawing = false; lastPt = null; };
+  drawCv.addEventListener('pointerup', endDraw);
+  drawCv.addEventListener('pointercancel', endDraw);
+  drawCv.addEventListener('pointerleave', () => { if (drawing) lastPt = null; });
+  $('clearBtn').addEventListener('click', () => { sess.strokes = []; redrawInk(); audio.key(); });
+
+  /* 그림을 1비트 비트맵으로 (DRAW_W × DRAW_H) */
+  function drawToBits() {
+    if (!sess.strokes.some((s) => s.length)) return null;
+    const oc = document.createElement('canvas'); oc.width = DRAW_W; oc.height = DRAW_H;
+    const g = oc.getContext('2d');
+    g.strokeStyle = '#000'; g.fillStyle = '#000'; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.lineWidth = Math.max(2, DRAW_W * 0.022);
+    sess.strokes.forEach((st) => {
+      if (!st.length) return;
+      if (st.length === 1) { g.beginPath(); g.arc(st[0].x * DRAW_W, st[0].y * DRAW_H, g.lineWidth / 2, 0, 7); g.fill(); return; }
+      g.beginPath(); g.moveTo(st[0].x * DRAW_W, st[0].y * DRAW_H);
+      for (let i = 1; i < st.length; i++) g.lineTo(st[i].x * DRAW_W, st[i].y * DRAW_H);
+      g.stroke();
     });
-  }
-  function msgKey(k) {
-    const ime = sess.ime;
-    if (k === 'LANG') { ime.commit(); sess.msgMode = sess.msgMode === 'ko' ? 'en' : 'ko'; sess.shift = 0; }
-    else if (k === 'SHIFT') {
-      const now = performance.now();
-      if (sess.shift === 1 && now - shiftT < 400) sess.shift = 2;
-      else sess.shift = sess.shift ? 0 : 1;
-      shiftT = now;
-    }
-    else if (k === 'BACK') ime.back();
-    else if (k === 'SPACE') ime.key(' ');
-    else {
-      const sh = sess.shift > 0;
-      if (sess.msgMode === 'ko') { let j = FG.HANGUL_KEYS[k]; if (sh && FG.HANGUL_SHIFT[j]) j = FG.HANGUL_SHIFT[j]; ime.key(j); }
-      else ime.key(sh ? k : k.toLowerCase());
-      if (sess.shift === 1) sess.shift = 0;
-    }
-    audio.key();
-    renderKeys();
-    renderMsg();
-  }
-  function renderMsg() {
-    const el = $('msgText'), ime = sess.ime;
-    const esc = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-    el.innerHTML = esc(ime.done()) + (ime.composing() ? '<span class="comp">' + esc(ime.composing()) + '</span>' : '') + '<span class="caret"></span>';
+    const img = g.getImageData(0, 0, DRAW_W, DRAW_H).data;
+    const bits = new Uint8Array(DRAW_W * DRAW_H);
+    for (let i = 0; i < bits.length; i++) bits[i] = img[i * 4 + 3] > 40 ? 1 : 0;
+    return bits;
   }
 
   async function finishMessage() {
-    sess.ime.commit();
-    const message = sess.ime.text().trim();
+    const bits = drawToBits();
+    const draw = bits ? FG.packDraw(DRAW_W, DRAW_H, bits) : null;
     try {
       const entry = await FG.db.add({
         bits: FG.bitsToStr(sess.bits), cols: S.cols, rows: S.rows, ts: Date.now(), name: sess.name,
-        bg: FG.packBg(sess.bgMask ? FG.bitsToStr(sess.bgMask) : '', sess.tone, { shape: sess.shape, message }),
+        bg: FG.packBg(sess.bgMask ? FG.bitsToStr(sess.bgMask) : '', sess.tone, { shape: sess.shape, draw }),
       }, Number(S.numberStart) || 1);
       sess.entry = entry;
       archive.push(entry);
@@ -328,6 +332,9 @@
   });
   $('gbBtn').addEventListener('click', () => { location.href = 'wall.html?from=kiosk'; });
 
+  /* 로고 누르면 처음 화면으로 */
+  $('logo').addEventListener('click', () => { if (state !== 'main' && state !== 'boot' && state !== 'countdown') { audio.key(); go('main'); } });
+
   /* ───────── 실제 키보드 (시험용) ───────── */
   window.addEventListener('keydown', (e) => {
     if (state === 'name') {
@@ -337,9 +344,8 @@
       return;
     }
     if (state === 'message') {
-      if (e.key === 'Backspace') { e.preventDefault(); sess.ime.back(); renderMsg(); }
+      if (e.key === 'Backspace') { e.preventDefault(); sess.strokes.pop(); redrawInk(); }
       else if (e.key === 'Enter') { e.preventDefault(); finishMessage(); }
-      else if (e.key && e.key.length === 1) { e.preventDefault(); sess.ime.key(e.key); renderMsg(); }
       return;
     }
     if (e.repeat) return;
@@ -594,7 +600,6 @@
 
   /* ───────── 시작 ───────── */
   buildNameKeys();
-  buildMsgKeys();
   resetSession();
   applySettings();
   if (FG.cloud) {

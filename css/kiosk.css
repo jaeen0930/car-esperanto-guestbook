@@ -8,7 +8,8 @@ html, body { background: #000; }
 button:focus { outline: none; }
 button { appearance: none; -webkit-appearance: none; border: 0; padding: 0; margin: 0; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
-#logo { --m: url(../assets/ui/logo-cep.svg); left: 74.9px; top: 39.5px; width: 80.7px; height: 33.3px; color: #fff; z-index: 6; }
+#logo { --m: url(../assets/ui/logo-cep.svg); left: 74.9px; top: 39.5px; width: 80.7px; height: 33.3px; color: #fff; z-index: 6; cursor: pointer; }
+#logo::before { content: ''; position: absolute; inset: -16px -20px; }
 #pix { position: absolute; left: 75.6px; top: 97.95px; width: 870.8px; height: 943.4px; }
 #faces { position: absolute; left: 0; top: 0; width: 1024px; height: 1366px; }
 #dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.81); opacity: 0; pointer-events: none; z-index: 2; }
@@ -68,15 +69,15 @@ body[data-state="countdown"] #shutter { pointer-events: none; }
 body[data-state="review"] #retake { display: block; }
 
 /* 이름 */
-#tName { --m: url(../assets/ui/t-enter-your-name.svg); left: 77px; top: 1087.1px; width: 347px; height: 34px; }
-#nameSub { left: 76px; top: 1128.27px; color: #c6c6c6; }
-#nameCv { position: absolute; left: 76px; top: 1224.51px; width: 760px; height: 92px; }
+#tName { --m: url(../assets/ui/t-enter-your-name.svg); left: 77px; top: 1050px; width: 347px; height: 34px; }
+#nameSub { left: 76px; top: 1090px; color: #c6c6c6; }
+#nameCv { position: absolute; left: 76px; top: 1120px; width: 760px; height: 72px; }
 
-/* 키보드 (피그마 키 상자 그대로) */
-.kbd { position: absolute; left: 594.8px; top: 1085.5px; width: 354px; height: 110px; }
-.kbd button { position: absolute; width: 30.6px; height: 32.58px; background: #191818; border: 1px solid #484746; border-radius: 2px; color: #fff; font: 700 11px/1 var(--mono); display: grid; place-items: center; }
+/* 이름 키보드 (크게, 화면 아래 전체 폭) */
+.kbd { position: absolute; left: 62px; top: 1198px; width: 900px; height: 160px; }
+.kbd button { position: absolute; width: 78px; height: 48px; background: #191818; border: 1px solid #484746; border-radius: 6px; color: #fff; font: 700 23px/1 var(--mono); display: grid; place-items: center; }
 .kbd button.down, .kbd button:active { background: rgba(255, 0, 5, 0.2); border-color: #ff0005; }
-.kbd button.wide { width: 46.852px; font: 400 19.9px/1 var(--sans); }
+.kbd button.wide { width: 120px; font: 400 30px/1 var(--sans); }
 .kbd.big { left: 294.9px; top: 1119.1px; width: 440px; height: 182px; }
 .kbd.big button { width: 38.4px; height: 40.04px; border-width: 1.229px; border-radius: 2.458px; font-size: 13.5px; }
 .kbd.big button.wide { width: 57.58px; font-size: 24.5px; }
@@ -91,12 +92,13 @@ body[data-state="review"] #retake { display: block; }
 #paper { position: absolute; left: 221.06px; top: 205.47px; width: 600px; height: 850px; background: #fff; border: 1px solid #444; color: #000; }
 #tMessage { --m: url(../assets/ui/t-leave-a-message.svg); left: 43.94px; top: 44.53px; width: 304px; height: 30px; color: #000; }
 #msgSub { position: absolute; left: 40.9px; top: 75.22px; margin: 0; font: 500 18px/43px var(--sans); letter-spacing: -0.486px; color: #333; white-space: nowrap; }
-#msgText { position: absolute; left: 40.9px; right: 40.9px; top: 146px; bottom: 40px; font: 500 22px/35px var(--sans); letter-spacing: -0.594px; color: #000; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; overflow: hidden; }
-#msgText .caret { display: inline-block; width: 2px; height: 26px; margin-left: 1px; vertical-align: -5px; background: #ff0005; animation: blink 1s steps(1) infinite; }
-#msgText .comp { text-decoration: underline; text-underline-offset: 4px; }
-#msgText.empty::before { content: ''; }
+/* 터치 그림판 */
+#drawCv { position: absolute; left: 30px; top: 120px; width: 540px; height: 700px; touch-action: none; cursor: crosshair; border: 1px dashed #d4d4d4; border-radius: 4px; }
 @keyframes blink { 50% { opacity: 0; } }
 #deco i { position: absolute; width: 39.9px; height: 39.9px; background: #fff; border: 1px solid #444; }
+#clearBtn { position: absolute; left: 92px; top: 1272px; height: 28px; display: flex; align-items: center; gap: 9px; color: #fff; z-index: 5; }
+#clearBtn::before { content: ''; position: absolute; inset: -18px -16px; }
+#clearBtn span { font: 400 20px/1 var(--mono); letter-spacing: 1.5px; }
 
 /* 감사 */
 #thanksName { position: absolute; left: 76px; top: 1093px; width: 760px; height: 46px; }
@@ -114,6 +116,8 @@ body[data-state="printed"] #gbBtn { display: block; }
 
 #nextBtn { left: 852.6px; top: 1273.9px; width: 94px; height: 24px; color: #fff; display: none; }
 #nextBtn .svg { --m: url(../assets/ui/t-next.svg); }
+/* 이름 화면은 아래를 큰 키보드가 차지하므로 NEXT 를 이름 입력칸 오른쪽 위로 */
+body[data-state="name"] #nextBtn { top: 1128px; }
 body.can-next[data-state="shape"] #nextBtn,
 body[data-state="review"] #nextBtn,
 body.can-next[data-state="name"] #nextBtn,

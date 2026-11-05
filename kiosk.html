@@ -11,8 +11,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <title>게스트북 · 키오스크</title>
-<link rel="stylesheet" href="css/base.css?v=1793700000">
-<link rel="stylesheet" href="css/kiosk.css?v=1793700000">
+<link rel="stylesheet" href="css/base.css?v=1794900000">
+<link rel="stylesheet" href="css/kiosk.css?v=1794900000">
 </head>
 <body data-state="boot">
 <!-- 피그마 "Guest book design · Section 1 · kiosk ui" 를 1024 × 1366 (iPad Pro 12.9) 좌표 그대로 옮김 -->
@@ -22,7 +22,7 @@
   <div id="dim"></div>
   <div id="flash"></div>
   <i class="svg" id="digit" aria-live="polite"></i>
-  <i class="svg ui" id="logo" aria-label="CEP"></i>
+  <i class="svg ui" id="logo" role="button" aria-label="처음으로"></i>
 
   <!-- 메인 -->
   <div class="view" id="v-main">
@@ -55,15 +55,15 @@
     <div class="kbd" id="kbdName"></div>
   </div>
 
-  <!-- 남길 말 -->
+  <!-- 남길 말 (터치로 글씨/그림) -->
   <div class="view" id="v-message">
     <div id="paper">
       <i class="svg" id="tMessage" aria-label="LEAVE A MESSAGE"></i>
-      <p id="msgSub">전시를 보고 느낀 점을 자유롭게 남겨주세요.</p>
-      <div id="msgText"></div>
+      <p id="msgSub">터치로 글씨를 쓰거나 그림을 그려보세요.</p>
+      <canvas id="drawCv"></canvas>
     </div>
     <div id="deco"></div>
-    <div class="kbd big" id="kbdMsg"></div>
+    <button type="button" id="clearBtn" aria-label="지우기"><span>✕ CLEAR</span></button>
   </div>
 
   <!-- 감사 · 출력 -->
@@ -88,9 +88,9 @@
 <script src="vendor/face-api.js"></script>
 <script src="vendor/selfie/selfie_segmentation.js"></script>
 <script src="config.js"></script>
-<script src="js/common.js?v=1793700000"></script>
-<script src="js/dotname.js?v=1793700000"></script>
-<script src="js/hangul.js?v=1793700000"></script>
-<script src="js/kiosk.js?v=1793700000"></script>
+<script src="js/common.js?v=1794900000"></script>
+<script src="js/dotname.js?v=1794900000"></script>
+<script src="js/hangul.js?v=1794900000"></script>
+<script src="js/kiosk.js?v=1794900000"></script>
 </body>
 </html>
