@@ -1141,7 +1141,8 @@
         else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();   // 아이패드 사파리(구버전)
       } catch (e) { /* 전체 화면 불가 */ }
     };
-    window.addEventListener('pointerdown', go, { capture: true });
+    // 첫 터치 한 번만 전체 화면 요청 (그림 그릴 때 획마다 재요청돼 화면이 깜빡이던 문제 수정)
+    window.addEventListener('pointerdown', go, { capture: true, once: true });
     window.addEventListener('keydown', (e) => { if (e.key === 'f' || e.key === 'F') go(); }, { capture: true });
   };
 
